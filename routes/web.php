@@ -2,8 +2,16 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\AuthController;
 
-Route::get('/', [DashboardController::class, 'index'])->name('dashboard.index');
+// Authentication Routes
+Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login')->middleware('guest');
+Route::post('/login', [AuthController::class, 'login'])->middleware('guest');
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
+
+// Protected Dashboard Routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard.index');
 // categories
 Route::get('/categories', [DashboardController::class, 'Categories'])->name('dashboard.categories');
 Route::post('/category/create', [DashboardController::class, 'StoreCategory'])->name('dashboard.store_category');
@@ -62,4 +70,5 @@ Route::post('/company/{Company}/price-list/create', [DashboardController::class,
 Route::post('/company/{Company}/bulk-update-price-lists', [DashboardController::class, 'BulkUpdateCompanyPriceLists'])->name('dashboard.bulk_update_company_price_lists');
 Route::post('/company-price-list/{CompanyPriceList}/update', [DashboardController::class, 'UpdateCompanyPriceList'])->name('dashboard.update_company_price_list');
 Route::get('/company-price-list/{CompanyPriceList}/delete', [DashboardController::class, 'DeleteCompanyPriceList'])->name('dashboard.delete_company_price_list');
+});
 

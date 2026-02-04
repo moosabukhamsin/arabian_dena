@@ -58,8 +58,23 @@
                         <!-- LOGO -->
 
                         <div class="d-flex order-lg-2 ms-auto header-right-icons">
-
-
+                            <div class="dropdown">
+                                <a class="nav-link icon" data-bs-toggle="dropdown">
+                                    <i class="fe fe-user"></i>
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
+                                    <div class="dropdown-header">
+                                        <span class="text-muted">{{ Auth::user()->name ?? 'User' }}</span>
+                                        <small class="text-muted d-block">{{ Auth::user()->email ?? '' }}</small>
+                                    </div>
+                                    <form method="POST" action="{{ route('logout') }}">
+                                        @csrf
+                                        <button type="submit" class="dropdown-item">
+                                            <i class="fe fe-log-out me-2"></i> Logout
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
