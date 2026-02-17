@@ -383,31 +383,41 @@ class DashboardController extends Controller
     {
         // Calculate duration
         $startDate = $orderItem->Order->delivery_date ? \Carbon\Carbon::parse($orderItem->Order->delivery_date) : $orderItem->Order->created_at;
+        $startDate = $startDate->startOfDay(); // Normalize to start of day for calendar day calculation
 
         // Check if this order item has been returned via backload
         $backloadItem = BackloadItem::where('order_item_id', $orderItem->id)->first();
 
         if ($backloadItem) {
             // Item has been returned, use backload date as end date
-            $endDate = \Carbon\Carbon::parse($backloadItem->Backload->date);
+            $endDate = \Carbon\Carbon::parse($backloadItem->Backload->date)->startOfDay();
         } else {
             // Item is still active, use current date
-            $endDate = now();
+            $endDate = now()->startOfDay();
         }
 
-        $durationDays = max(1, round($startDate->diffInDays($endDate)));
+        // Calculate duration: count each calendar day (inclusive of start and end)
+        // Example: Day 17 to Day 20 = 4 days (Day 17, 18, 19, 20)
+        $durationDays = round($startDate->diffInDays($endDate)) + 1;
 
         // Get company price list for this product
         $companyPriceList = CompanyPriceList::where('company_id', $company->id)
             ->where('product_id', $orderItem->productItem->product->id)
             ->first();
 
-        if (!$companyPriceList) {
-            return [
-                'unit_price' => 0,
-                'duration_days' => $durationDays,
-                'total_price' => 0
-            ];
+        // Get product for fallback default prices
+        $product = $orderItem->productItem->product;
+
+        // Use company price list if available, otherwise fall back to product default prices
+        if ($companyPriceList) {
+            $dailyPrice = $companyPriceList->daily_price ?? 0;
+            $weeklyPrice = $companyPriceList->weekly_price ?? 0;
+            $monthlyPrice = $companyPriceList->monthly_price ?? 0;
+        } else {
+            // Fall back to product default prices
+            $dailyPrice = $product->daily_price ? (float) $product->daily_price : 0;
+            $weeklyPrice = $product->weekly_price ? (float) $product->weekly_price : 0;
+            $monthlyPrice = $product->monthly_price ? (float) $product->monthly_price : 0;
         }
 
         // Determine unit price based on company pricing type
@@ -416,18 +426,18 @@ class DashboardController extends Controller
         if ($company->pricing_type === 'daily_monthly') {
             // Rule 1: daily_monthly
             if ($durationDays <= 10) {
-                $unitPrice = $companyPriceList->daily_price;
+                $unitPrice = $dailyPrice;
             } else {
-                $unitPrice = $companyPriceList->monthly_price;
+                $unitPrice = $monthlyPrice;
             }
         } else {
             // Rule 2: daily_weekly_monthly
             if ($durationDays <= 7) {
-                $unitPrice = $companyPriceList->daily_price;
+                $unitPrice = $dailyPrice;
             } elseif ($durationDays <= 30) {
-                $unitPrice = $companyPriceList->weekly_price;
+                $unitPrice = $weeklyPrice;
             } else {
-                $unitPrice = $companyPriceList->monthly_price;
+                $unitPrice = $monthlyPrice;
             }
         }
 
@@ -493,22 +503,24 @@ class DashboardController extends Controller
     private function calculateRentalDuration($orderItem)
     {
         $startDate = $orderItem->order->created_at ?? now();
+        $startDate = $startDate->startOfDay(); // Normalize to start of day for calendar day calculation
 
         // Check if this order item has been returned via backload
         $backloadItem = BackloadItem::where('order_item_id', $orderItem->id)->first();
 
         if ($backloadItem) {
             // Item has been returned, use backload date as end date
-            $endDate = \Carbon\Carbon::parse($backloadItem->Backload->date);
+            $endDate = \Carbon\Carbon::parse($backloadItem->Backload->date)->startOfDay();
             $isActive = false;
         } else {
             // Item is still on rental - calculate from start to now
-            $endDate = now();
+            $endDate = now()->startOfDay();
             $isActive = true;
         }
 
-        // Ensure we always get positive days
-        $days = max(1, round($startDate->diffInDays($endDate)));
+        // Calculate duration: count each calendar day (inclusive of start and end)
+        // Example: Day 17 to Day 20 = 4 days (Day 17, 18, 19, 20)
+        $days = round($startDate->diffInDays($endDate)) + 1;
 
         return [
             'days' => $days,
@@ -532,8 +544,16 @@ class DashboardController extends Controller
             ->where('product_id', $product->id)
             ->first();
 
-        if (!$companyPriceList) {
-            return null;
+        // Use company price list if available, otherwise fall back to product default prices
+        if ($companyPriceList) {
+            $dailyPrice = $companyPriceList->daily_price ?? 0;
+            $weeklyPrice = $companyPriceList->weekly_price ?? 0;
+            $monthlyPrice = $companyPriceList->monthly_price ?? 0;
+        } else {
+            // Fall back to product default prices
+            $dailyPrice = $product->daily_price ? (float) $product->daily_price : 0;
+            $weeklyPrice = $product->weekly_price ? (float) $product->weekly_price : 0;
+            $monthlyPrice = $product->monthly_price ? (float) $product->monthly_price : 0;
         }
 
         $totalPrice = 0;
@@ -542,25 +562,25 @@ class DashboardController extends Controller
         if ($company->pricing_type === 'daily_monthly') {
             // Rule 1: daily_monthly
             if ($days <= 10) {
-                $totalPrice = max(0, $days * $companyPriceList->daily_price);
-                $breakdown[] = "{$days} days × $" . number_format($companyPriceList->daily_price, 2) . " (daily)";
+                $totalPrice = max(0, $days * $dailyPrice);
+                $breakdown[] = "{$days} days × $" . number_format($dailyPrice, 2) . " (daily)";
             } else {
-                $totalPrice = max(0, $companyPriceList->monthly_price);
-                $breakdown[] = "1 month × $" . number_format($companyPriceList->monthly_price, 2) . " (monthly)";
+                $totalPrice = max(0, $monthlyPrice);
+                $breakdown[] = "1 month × $" . number_format($monthlyPrice, 2) . " (monthly)";
             }
         } else {
             // Rule 2: daily_weekly_monthly
             if ($days <= 7) {
-                $totalPrice = max(0, $days * $companyPriceList->daily_price);
-                $breakdown[] = "{$days} days × $" . number_format($companyPriceList->daily_price, 2) . " (daily)";
+                $totalPrice = max(0, $days * $dailyPrice);
+                $breakdown[] = "{$days} days × $" . number_format($dailyPrice, 2) . " (daily)";
             } elseif ($days <= 30) {
                 $weeks = ceil($days / 7);
-                $totalPrice = max(0, $weeks * $companyPriceList->weekly_price);
-                $breakdown[] = "{$weeks} week" . ($weeks !== 1 ? 's' : '') . " × $" . number_format($companyPriceList->weekly_price, 2) . " (weekly)";
+                $totalPrice = max(0, $weeks * $weeklyPrice);
+                $breakdown[] = "{$weeks} week" . ($weeks !== 1 ? 's' : '') . " × $" . number_format($weeklyPrice, 2) . " (weekly)";
             } else {
                 $months = ceil($days / 30);
-                $totalPrice = max(0, $months * $companyPriceList->monthly_price);
-                $breakdown[] = "{$months} month" . ($months !== 1 ? 's' : '') . " × $" . number_format($companyPriceList->monthly_price, 2) . " (monthly)";
+                $totalPrice = max(0, $months * $monthlyPrice);
+                $breakdown[] = "{$months} month" . ($months !== 1 ? 's' : '') . " × $" . number_format($monthlyPrice, 2) . " (monthly)";
             }
         }
 

@@ -41,7 +41,7 @@
                                         <tbody>
                                             @foreach ($companies as $company)
                                                 <tr>
-                                                    <td>{{ $company->id }} - <img src="{{ asset('storage/' . $company->image) }}" alt="Company Logo" width="50"></td>
+                                                    <td>{{ $company->id }} - @if($company->image_url)<img src="{{ $company->image_url }}" alt="Company Logo" width="50">@endif</td>
                                                     <td>{{ $company->name }}</td>
                                                     <td>{{ $company->email }}</td>
                                                     <td>{{ $company->mobile_number }}</td>
@@ -163,8 +163,8 @@
                         <div class="form-group">
                             <label class="form-label">Logo</label>
                             <input type="file" name="image" class="form-control">
-                            @if($company->image)
-                                <small class="text-muted">Current: <img src="{{ asset('storage/'.$company->image) }}" alt="Current Logo" width="50"></small>
+                            @if($company->image_url)
+                                <small class="text-muted">Current: <img src="{{ $company->image_url }}" alt="Current Logo" width="50"></small>
                             @endif
                         </div>
                     </div>

@@ -19,6 +19,7 @@ class CompanySeeder extends Seeder
                 'email' => 'info@arabianconstruction.com',
                 'mobile_number' => '+966501234567',
                 'pricing_type' => 'daily_weekly_monthly',
+                'image' => 'assets/images/users/1.jpg',
                 'is_active' => true,
             ],
             [
@@ -26,6 +27,7 @@ class CompanySeeder extends Seeder
                 'email' => 'contact@saudiheavy.com',
                 'mobile_number' => '+966502345678',
                 'pricing_type' => 'daily_monthly',
+                'image' => 'assets/images/users/2.jpg',
                 'is_active' => true,
             ],
             [
@@ -33,6 +35,7 @@ class CompanySeeder extends Seeder
                 'email' => 'rentals@gulfmachinery.com',
                 'mobile_number' => '+966503456789',
                 'pricing_type' => 'daily_weekly_monthly',
+                'image' => 'assets/images/users/3.jpg',
                 'is_active' => true,
             ],
             [
@@ -40,6 +43,7 @@ class CompanySeeder extends Seeder
                 'email' => 'solutions@desertequipment.com',
                 'mobile_number' => '+966504567890',
                 'pricing_type' => 'daily_monthly',
+                'image' => 'assets/images/users/4.jpg',
                 'is_active' => true,
             ],
             [
@@ -47,6 +51,7 @@ class CompanySeeder extends Seeder
                 'email' => 'services@royalconstruction.com',
                 'mobile_number' => '+966505678901',
                 'pricing_type' => 'daily_weekly_monthly',
+                'image' => 'assets/images/users/5.jpg',
                 'is_active' => true,
             ],
         ];
