@@ -48,7 +48,7 @@
                                         <tbody>
                                             @foreach ($products as $product)
                                                 <tr>
-                                                    <td>{{ $product->id }} - <img src="{{ asset("storage/".$product->image) }}" alt="Product Image" width="25"> </td>
+                                                    <td>{{ $product->id }} - @if($product->image_url)<img src="{{ $product->image_url }}" alt="Product Image" width="25">@endif </td>
                                                     <td>{{ $product->name }}</td>
                                                     <td>{{ $product->category->name }}</td>
                                                     <td>{{ $product->ProductItems->where('is_active', true)->count() }}</td>
@@ -165,7 +165,7 @@
                             <label class="form-label">Image</label>
                             <input type="file" name="image" class="form-control">
                             @if($product->image)
-                                <small class="text-muted">Current: <img src="{{ asset('storage/'.$product->image) }}" alt="Current Image" width="50"></small>
+                                <small class="text-muted">Current: <img src="{{ $product->image_url }}" alt="Current Image" width="50"></small>
                             @endif
                         </div>
                         <div class="form-group">

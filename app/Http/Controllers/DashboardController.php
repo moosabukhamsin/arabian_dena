@@ -15,6 +15,7 @@ use App\Models\OrderItem;
 use App\Models\Backload;
 use App\Models\BackloadItem;
 use App\Models\CompanyPriceList;
+use App\Services\ProductItemStatusService;
 
 
 class DashboardController extends Controller
@@ -186,48 +187,9 @@ class DashboardController extends Controller
         $productItems = ProductItem::with(['product', 'orderItems.order', 'backloadItems'])->where('is_active', true)->get();
         $products = Product::where('is_active', true)->get();
 
-        // Calculate rental status for each product item
-        foreach ($productItems as $productItem) {
-            $rentalInfo = $this->calculateRentalStatus($productItem);
-            $productItem->rental_status = $rentalInfo['status'];
-            $productItem->rental_details = $rentalInfo['details'] ?? null;
-        }
-
         return view('dashboard.product_items', compact('productItems', 'products'));
     }
 
-    private function calculateRentalStatus($productItem)
-    {
-        // Get all order items for this product item
-        $orderItems = $productItem->orderItems()->with('order.company')->whereHas('order', function($query) {
-            $query->where('is_active', true);
-        })->get();
-
-        if ($orderItems->isEmpty()) {
-            return ['status' => 'free'];
-        }
-
-        // Check if any order item is currently active (not returned)
-        foreach ($orderItems as $orderItem) {
-            // Check if this order item has been returned in backloads
-            $backloadItem = BackloadItem::where('order_item_id', $orderItem->id)->first();
-
-            if (!$backloadItem) {
-                // This order item hasn't been returned yet, so it's on rental
-                return [
-                    'status' => 'on_rental',
-                    'details' => [
-                        'company' => $orderItem->order->company->name ?? 'Unknown Company',
-                        'order_id' => $orderItem->order->id,
-                        'delivery_date' => $orderItem->order->delivery_date ?? 'N/A'
-                    ]
-                ];
-            }
-        }
-
-        // All order items have been returned
-        return ['status' => 'free'];
-    }
     public function StoreProduct(Request $request)
     {
         $data = $request->except(['image']);
@@ -244,13 +206,6 @@ class DashboardController extends Controller
     {
         // Load product items with their relationships
         $Product->load(['ProductItems.product']);
-
-        // Calculate rental status for each product item
-        foreach ($Product->ProductItems as $productItem) {
-            $rentalInfo = $this->calculateRentalStatus($productItem);
-            $productItem->rental_status = $rentalInfo['status'];
-            $productItem->rental_details = $rentalInfo['details'] ?? null;
-        }
 
         return view('dashboard.product', ['Product' => $Product]);
     }
@@ -280,6 +235,7 @@ class DashboardController extends Controller
         $data = $request->all();
         $data['is_active'] = true;
         $data['product_id'] = $Product->id;
+        $data['status'] = 'In Stock'; // Set default status to In Stock
         ProductItem::create($data);
         return redirect()->back();
     }
@@ -338,7 +294,17 @@ class DashboardController extends Controller
     }
     public function DeleteOrder(Order $Order)
     {
+        // Get all product items affected by this order before deactivating
+        $productItems = $Order->orderItems->pluck('productItem')->unique();
+        
         $Order->update(['is_active' => 0]);
+        
+        // Recalculate status for all affected product items
+        $statusService = new ProductItemStatusService();
+        foreach ($productItems as $productItem) {
+            $statusService->updateRentalStatus($productItem);
+        }
+        
         return redirect()->back();
     }
     public function UpdateOrder(Request $request, Order $Order)
@@ -361,11 +327,10 @@ class DashboardController extends Controller
     {
         // Get all product items that are currently on rental (active order items not returned)
         // An item is considered rented if:
-        // 1. It has an order item with no end_date (still active rental)
-        // 2. AND it hasn't been returned via a backload item
+        // 1. It has an order item that hasn't been returned via a backload item
+        // 2. (If there's no backload item, the order item is still active/rented)
 
-        $rentedProductItemIds = OrderItem::whereNull('end_date')
-            ->whereNotIn('id', function($query) {
+        $rentedProductItemIds = OrderItem::whereNotIn('id', function($query) {
                 $query->select('order_item_id')
                       ->from('backload_items')
                       ->whereNotNull('order_item_id');
@@ -375,9 +340,11 @@ class DashboardController extends Controller
 
         // Get available product items that are:
         // 1. Active (is_active = 1)
-        // 2. Not already in this order
-        // 3. Not currently rented by any company
+        // 2. Status is 'In Stock'
+        // 3. Not already in this order
+        // 4. Not currently rented by any company
         $ProductItems = ProductItem::where('is_active', 1)
+            ->where('status', 'In Stock') // Only show items that are in stock
             ->whereNotIn('id', $Order->OrderItems()->pluck('product_item_id')->toArray()) // Not already in this order
             ->whereNotIn('id', $rentedProductItemIds) // Not currently rented by any company
             ->with('product') // Eager load product relationship for better performance
@@ -527,11 +494,17 @@ class DashboardController extends Controller
     {
         $startDate = $orderItem->order->created_at ?? now();
 
-        // If no end_date, item is still on rental - calculate from start to now
-        if (!$orderItem->end_date) {
-            $endDate = now();
+        // Check if this order item has been returned via backload
+        $backloadItem = BackloadItem::where('order_item_id', $orderItem->id)->first();
+
+        if ($backloadItem) {
+            // Item has been returned, use backload date as end date
+            $endDate = \Carbon\Carbon::parse($backloadItem->Backload->date);
+            $isActive = false;
         } else {
-            $endDate = \Carbon\Carbon::parse($orderItem->end_date);
+            // Item is still on rental - calculate from start to now
+            $endDate = now();
+            $isActive = true;
         }
 
         // Ensure we always get positive days
@@ -540,7 +513,7 @@ class DashboardController extends Controller
         return [
             'days' => $days,
             'period' => $days . ' day' . ($days !== 1 ? 's' : ''),
-            'is_active' => !$orderItem->end_date
+            'is_active' => $isActive
         ];
     }
 
@@ -600,12 +573,23 @@ class DashboardController extends Controller
     {
         $data = $request->all();
         $data['order_id'] = $Order->id;
-        OrderItem::create($data);
+        $orderItem = OrderItem::create($data);
+        
+        // Update ProductItem status
+        $statusService = new ProductItemStatusService();
+        $statusService->updateRentalStatus($orderItem->productItem);
+        
         return redirect()->back();
     }
     public function DeleteOrderItem(OrderItem $OrderItem)
     {
+        $productItem = $OrderItem->productItem;
         $OrderItem->delete();
+        
+        // Recalculate ProductItem status
+        $statusService = new ProductItemStatusService();
+        $statusService->updateRentalStatus($productItem);
+        
         return redirect()->back();
     }
     public function UpdateOrderItem(Request $request,OrderItem $OrderItem)
@@ -660,12 +644,22 @@ class DashboardController extends Controller
     {
         $data = $request->all();
         $data['backload_id'] = $Backload->id;
-        BackloadItem::create($data);
+        $backloadItem = BackloadItem::create($data);
+        
+        // Immediately set status to Backloaded when BackloadItem is created
+        $backloadItem->orderItem->productItem->update(['status' => 'Backloaded']);
+        
         return redirect()->back();
     }
     public function DeleteBackloadItem(BackloadItem $BackloadItem)
     {
+        $productItem = $BackloadItem->orderItem->productItem;
         $BackloadItem->delete();
+        
+        // Recalculate ProductItem status (might go back to on_rental)
+        $statusService = new ProductItemStatusService();
+        $statusService->updateRentalStatus($productItem);
+        
         return redirect()->back();
     }
     // Company Price Lists

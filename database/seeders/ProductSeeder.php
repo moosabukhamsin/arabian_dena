@@ -29,6 +29,7 @@ class ProductSeeder extends Seeder
                 'weekly_price' => 9000.00,
                 'monthly_price' => 35000.00,
                 'description' => 'Heavy-duty excavator for construction projects',
+                'image' => 'assets/images/products/1.jpg',
                 'is_active' => true,
             ],
             [
@@ -38,6 +39,7 @@ class ProductSeeder extends Seeder
                 'weekly_price' => 7200.00,
                 'monthly_price' => 28000.00,
                 'description' => 'Powerful bulldozer for earthmoving operations',
+                'image' => 'assets/images/products/2.jpg',
                 'is_active' => true,
             ],
             [
@@ -47,6 +49,7 @@ class ProductSeeder extends Seeder
                 'weekly_price' => 12000.00,
                 'monthly_price' => 45000.00,
                 'description' => 'Mobile crane for lifting heavy loads',
+                'image' => 'assets/images/products/3.jpg',
                 'is_active' => true,
             ],
             [
@@ -56,6 +59,7 @@ class ProductSeeder extends Seeder
                 'weekly_price' => 4800.00,
                 'monthly_price' => 18000.00,
                 'description' => 'Ready-mix concrete delivery truck',
+                'image' => 'assets/images/products/4.jpg',
                 'is_active' => true,
             ],
             [
@@ -65,6 +69,7 @@ class ProductSeeder extends Seeder
                 'weekly_price' => 3000.00,
                 'monthly_price' => 11000.00,
                 'description' => 'Diesel generator for power supply',
+                'image' => 'assets/images/products/5.jpg',
                 'is_active' => true,
             ],
             [
@@ -74,6 +79,7 @@ class ProductSeeder extends Seeder
                 'weekly_price' => 150.00,
                 'monthly_price' => 500.00,
                 'description' => 'Complete safety helmet set for workers',
+                'image' => 'assets/images/products/6.jpg',
                 'is_active' => true,
             ],
             [
@@ -83,6 +89,7 @@ class ProductSeeder extends Seeder
                 'weekly_price' => 3600.00,
                 'monthly_price' => 13500.00,
                 'description' => 'Industrial forklift for material handling',
+                'image' => 'assets/images/products/7.jpg',
                 'is_active' => true,
             ],
             [
@@ -92,6 +99,7 @@ class ProductSeeder extends Seeder
                 'weekly_price' => 1800.00,
                 'monthly_price' => 6500.00,
                 'description' => 'High-capacity air compressor',
+                'image' => 'assets/images/products/8.jpg',
                 'is_active' => true,
             ],
         ];

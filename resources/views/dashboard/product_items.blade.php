@@ -31,7 +31,7 @@
                                                 <th class="border-bottom-0">ID</th>
                                                 <th class="border-bottom-0">Product</th>
                                                 <th class="border-bottom-0">Series Number</th>
-                                                <th class="border-bottom-0">Rental Status</th>
+                                                <th class="border-bottom-0">Status</th>
                                                 <th class="border-bottom-0">Actions</th>
                                             </tr>
                                         </thead>
@@ -41,7 +41,7 @@
                                                     <td>{{ $productItem->id }}</td>
                                                     <td>
                                                         @if($productItem->product->image)
-                                                            <img src="{{ asset('storage/'.$productItem->product->image) }}" alt="Product Image" width="30" class="me-2">
+                                                            <img src="{{ $productItem->product->image_url }}" alt="Product Image" width="30" class="me-2">
                                                         @else
                                                             <div class="bg-light d-inline-block me-2" style="width: 30px; height: 30px; border-radius: 4px;"></div>
                                                         @endif
@@ -49,26 +49,21 @@
                                                     </td>
                                                     <td>{{ $productItem->series_number }}</td>
                                                     <td>
-                                                        @if($productItem->rental_status === 'free')
+                                                        @if($productItem->status === 'In Stock')
                                                             <span class="badge bg-success">
-                                                                <i data-feather="check-circle"></i> Free
+                                                                <i data-feather="check-circle"></i> In Stock
                                                             </span>
-                                                        @elseif($productItem->rental_status === 'on_rental')
-                                                            <div>
-                                                                <span class="badge bg-warning mb-1">
-                                                                    <i data-feather="clock"></i> On Rental
-                                                                </span>
-                                                                @if($productItem->rental_details)
-                                                                    <div class="small text-muted">
-                                                                        <strong>Company:</strong> {{ $productItem->rental_details['company'] }}<br>
-                                                                        <strong>Order:</strong> #{{ $productItem->rental_details['order_id'] }}<br>
-                                                                        <strong>Delivery:</strong> {{ $productItem->rental_details['delivery_date'] }}
-                                                                    </div>
-                                                                @endif
-                                                            </div>
+                                                        @elseif($productItem->status === 'Under Rental')
+                                                            <span class="badge bg-warning">
+                                                                <i data-feather="clock"></i> Under Rental
+                                                            </span>
+                                                        @elseif($productItem->status === 'Backloaded')
+                                                            <span class="badge bg-info">
+                                                                <i data-feather="package"></i> Backloaded
+                                                            </span>
                                                         @else
                                                             <span class="badge bg-secondary">
-                                                                <i data-feather="help-circle"></i> Unknown
+                                                                <i data-feather="help-circle"></i> {{ ucfirst($productItem->status ?? 'Unknown') }}
                                                             </span>
                                                         @endif
                                                     </td>
@@ -76,6 +71,9 @@
                                                         <a href="{{ route('dashboard.product_item', $productItem->id) }}" class="btn btn-sm btn-info">
                                                             <i data-feather="eye"></i> View
                                                         </a>
+                                                        <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editProductItemModal{{ $productItem->id }}">
+                                                            <i data-feather="edit"></i> Edit
+                                                        </button>
                                                         <a href="{{ route('dashboard.delete_product_item', $productItem->id) }}"
                                                            class="btn btn-sm btn-danger"
                                                            onclick="return confirm('Are you sure you want to delete this product item?')">
@@ -133,6 +131,44 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Edit Product Item Modals -->
+                @foreach ($productItems as $productItem)
+                <div class="modal fade" id="editProductItemModal{{ $productItem->id }}" tabindex="-1" role="dialog">
+                    <div class="modal-dialog modal-lg" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Edit Product Item #{{ $productItem->id }}</h5>
+                                <button class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">×</span>
+                                </button>
+                            </div>
+                            <form action="{{ route('dashboard.update_product_item', $productItem->id) }}" method="POST">
+                                @csrf
+                                <div class="modal-body">
+                                    <div class="form-group">
+                                        <label class="form-label">Series Number</label>
+                                        <input type="text" name="series_number" class="form-control" value="{{ $productItem->series_number }}" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Status</label>
+                                        <select name="status" class="form-control" required>
+                                            <option value="In Stock" {{ $productItem->status === 'In Stock' ? 'selected' : '' }}>In Stock</option>
+                                            <option value="Under Rental" {{ $productItem->status === 'Under Rental' ? 'selected' : '' }}>Under Rental</option>
+                                            <option value="Backloaded" {{ $productItem->status === 'Backloaded' ? 'selected' : '' }}>Backloaded</option>
+                                        </select>
+                                        <small class="form-text text-muted">Status is automatically updated based on rental activity. Manual changes may be overridden.</small>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    <button type="submit" class="btn btn-primary">Update Product Item</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                @endforeach
 
             </div>
             <!-- CONTAINER END -->

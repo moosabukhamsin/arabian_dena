@@ -128,6 +128,7 @@ class ProductItemSeeder extends Seeder
         ];
 
         foreach ($productItems as $productItem) {
+            $productItem['status'] = 'In Stock';
             ProductItem::create($productItem);
         }
     }

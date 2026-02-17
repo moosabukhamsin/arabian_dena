@@ -48,7 +48,7 @@
                                                 <tr>
                                                     <td>
                                                         @if($product->image)
-                                                            <img src="{{ asset('storage/'.$product->image) }}" alt="Product Image" width="30" class="me-2">
+                                                            <img src="{{ $product->image_url }}" alt="Product Image" width="30" class="me-2">
                                                         @else
                                                             <div class="bg-light d-inline-block me-2" style="width: 30px; height: 30px; border-radius: 4px;"></div>
                                                         @endif

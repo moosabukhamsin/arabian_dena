@@ -38,11 +38,11 @@
                                         <tbody>
                                             @foreach ($OrderItems as $OrderItem)
                                                 <tr>
-                                                    <td>{{ $OrderItem->id }} - <img src="{{ asset("storage/".$OrderItem->ProductItem->Product->image) }}" alt="Product Image" width="25"></td>
+                                                    <td>{{ $OrderItem->id }} - @if($OrderItem->ProductItem->Product->image_url)<img src="{{ $OrderItem->ProductItem->Product->image_url }}" alt="Product Image" width="25">@endif</td>
                                                     <td>{{ $OrderItem->ProductItem->product->name }}</td>
                                                     <td>{{ $OrderItem->ProductItem->series_number }}</td>
                                                     <td>{{ $OrderItem->Order->delivery_date }}</td>
-                                                    <td>{{ $OrderItem->end_date }}</td>
+                                                    <td>Active</td>
                                                     <td>{{ $OrderItem->daily_price }}</td>
                                                     <td>{{ $OrderItem->weekly_price }}</td>
                                                     <td>{{ $OrderItem->monthly_price }}</td>
@@ -95,7 +95,7 @@
                                         <tbody>
                                             @foreach ($Backload->BackloadItems as $BackloadItem)
                                                 <tr>
-                                                    <td>{{ $BackloadItem->OrderItem->id }} - <img src="{{ asset("storage/".$BackloadItem->OrderItem->ProductItem->Product->image) }}" alt="Product Image" width="25"></td>
+                                                    <td>{{ $BackloadItem->OrderItem->id }} - @if($BackloadItem->OrderItem->ProductItem->Product->image_url)<img src="{{ $BackloadItem->OrderItem->ProductItem->Product->image_url }}" alt="Product Image" width="25">@endif</td>
                                                     <td>{{ $BackloadItem->OrderItem->ProductItem->product->name }}</td>
                                                     <td>{{ $BackloadItem->OrderItem->ProductItem->series_number }}</td>
                                                     <td>{{ $BackloadItem->OrderItem->Order->delivery_date }}</td>

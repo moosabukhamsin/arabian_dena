@@ -44,7 +44,7 @@
                                             @foreach ($ProductItems as $ProductItem)
                                                 <tr>
                                                     <td><input type="checkbox"></td>
-                                                    <td>{{ $ProductItem->id }} - <img src="{{ asset("storage/".$ProductItem->Product->image) }}" alt="Product Image" width="25"></td>
+                                                    <td>{{ $ProductItem->id }} - @if($ProductItem->Product->image_url)<img src="{{ $ProductItem->Product->image_url }}" alt="Product Image" width="25">@endif</td>
                                                     <td>{{ $ProductItem->product->name }}</td>
                                                     <td>{{ $ProductItem->series_number }}</td>
                                                     <td class=" table_input">
@@ -104,7 +104,7 @@
                                         <tbody>
                                             @foreach ($Order->OrderItems as $OrderItem)
                                                 <tr>
-                                                    <td>{{ $OrderItem->id }} - <img src="{{ asset("storage/".$OrderItem->ProductItem->Product->image) }}" alt="Product Image" width="25"></td>
+                                                    <td>{{ $OrderItem->id }} - @if($OrderItem->ProductItem->Product->image_url)<img src="{{ $OrderItem->ProductItem->Product->image_url }}" alt="Product Image" width="25">@endif</td>
                                                     <td>{{ $OrderItem->ProductItem->product->name }}</td>
                                                     <td>{{ $OrderItem->ProductItem->series_number }}</td>
                                                     <td>{{ $OrderItem->Order->delivery_date }}</td>

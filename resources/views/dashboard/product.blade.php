@@ -33,7 +33,7 @@
                                                 <th class="border-bottom-0">ID</th>
                                                 <th class="border-bottom-0">Product</th>
                                                 <th class="border-bottom-0">Series Number</th>
-                                                <th class="border-bottom-0">Rental Status</th>
+                                                <th class="border-bottom-0">Status</th>
                                                 <th class="border-bottom-0">Actions</th>
                                             </tr>
                                         </thead>
@@ -43,7 +43,7 @@
                                                     <td>{{ $ProductItem->id }}</td>
                                                     <td>
                                                         @if($ProductItem->product->image)
-                                                            <img src="{{ asset('storage/'.$ProductItem->product->image) }}" alt="Product Image" width="30" class="me-2">
+                                                            <img src="{{ $ProductItem->product->image_url }}" alt="Product Image" width="30" class="me-2">
                                                         @else
                                                             <div class="bg-light d-inline-block me-2" style="width: 30px; height: 30px; border-radius: 4px;"></div>
                                                         @endif
@@ -51,26 +51,21 @@
                                                     </td>
                                                     <td>{{ $ProductItem->series_number }}</td>
                                                     <td>
-                                                        @if($ProductItem->rental_status === 'free')
+                                                        @if($ProductItem->status === 'In Stock')
                                                             <span class="badge bg-success">
-                                                                <i data-feather="check-circle"></i> Free
+                                                                <i data-feather="check-circle"></i> In Stock
                                                             </span>
-                                                        @elseif($ProductItem->rental_status === 'on_rental')
-                                                            <div>
-                                                                <span class="badge bg-warning mb-1">
-                                                                    <i data-feather="clock"></i> On Rental
-                                                                </span>
-                                                                @if($ProductItem->rental_details)
-                                                                    <div class="small text-muted">
-                                                                        <strong>Company:</strong> {{ $ProductItem->rental_details['company'] }}<br>
-                                                                        <strong>Order:</strong> #{{ $ProductItem->rental_details['order_id'] }}<br>
-                                                                        <strong>Delivery:</strong> {{ $ProductItem->rental_details['delivery_date'] }}
-                                                                    </div>
-                                                                @endif
-                                                            </div>
+                                                        @elseif($ProductItem->status === 'Under Rental')
+                                                            <span class="badge bg-warning">
+                                                                <i data-feather="clock"></i> Under Rental
+                                                            </span>
+                                                        @elseif($ProductItem->status === 'Backloaded')
+                                                            <span class="badge bg-info">
+                                                                <i data-feather="package"></i> Backloaded
+                                                            </span>
                                                         @else
                                                             <span class="badge bg-secondary">
-                                                                <i data-feather="help-circle"></i> Unknown
+                                                                <i data-feather="help-circle"></i> {{ ucfirst($ProductItem->status ?? 'Unknown') }}
                                                             </span>
                                                         @endif
                                                     </td>
@@ -153,10 +148,11 @@
                         <div class="form-group">
                             <label class="form-label">Status</label>
                             <select name="status" class="form-control" required>
-                                <option value="available" {{ $ProductItem->status === 'available' ? 'selected' : '' }}>Available</option>
-                                <option value="maintenance" {{ $ProductItem->status === 'maintenance' ? 'selected' : '' }}>Maintenance</option>
-                                <option value="inactive" {{ $ProductItem->status === 'inactive' ? 'selected' : '' }}>Inactive</option>
+                                <option value="In Stock" {{ $ProductItem->status === 'In Stock' ? 'selected' : '' }}>In Stock</option>
+                                <option value="Under Rental" {{ $ProductItem->status === 'Under Rental' ? 'selected' : '' }}>Under Rental</option>
+                                <option value="Backloaded" {{ $ProductItem->status === 'Backloaded' ? 'selected' : '' }}>Backloaded</option>
                             </select>
+                            <small class="form-text text-muted">Status is automatically updated based on rental activity. Manual changes may be overridden.</small>
                         </div>
                     </div>
                     <div class="modal-footer">
