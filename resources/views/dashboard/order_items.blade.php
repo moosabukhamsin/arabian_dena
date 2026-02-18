@@ -51,9 +51,9 @@
                                                             Active
                                                         @endif
                                                     </td>
-                                                    <td>${{ number_format($orderItem->unit_price ?? 0, 2) }}</td>
+                                                    <td>{{ number_format($orderItem->unit_price ?? 0, 2) }} SAR</td>
                                                     <td>{{ $orderItem->duration_days ?? 0 }} days</td>
-                                                    <td>${{ number_format($orderItem->total_price ?? 0, 2) }}</td>
+                                                    <td>{{ number_format($orderItem->total_price ?? 0, 2) }} SAR</td>
                                                     <td class=" table_input">
                                                         <a href="{{ route('dashboard.delete_order_item', $orderItem->id) }}" >
                                                             <button id="bDel" type="button" class="btn  btn-sm btn-danger">

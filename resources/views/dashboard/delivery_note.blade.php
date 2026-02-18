@@ -197,9 +197,9 @@
                     <td>{{ $item->id }}</td>
                     <td>{{ $item->ProductItem->product->name }}</td>
                     <td>{{ $item->ProductItem->series_number }}</td>
-                    <td>${{ number_format($item->unit_price ?? 0, 2) }}</td>
+                    <td>{{ number_format($item->unit_price ?? 0, 2) }} SAR</td>
                     <td>{{ $item->duration_days ?? 0 }} days</td>
-                    <td>${{ number_format($item->total_price ?? 0, 2) }}</td>
+                    <td>{{ number_format($item->total_price ?? 0, 2) }} SAR</td>
                 </tr>
                 @endforeach
             </tbody>
@@ -213,7 +213,7 @@
         </div>
         <div class="total-row">
             <span class="total-label">Total Amount:</span>
-            <span>${{ number_format($Order->OrderItems->sum('total_price'), 2) }}</span>
+            <span>{{ number_format($Order->OrderItems->sum('total_price'), 2) }} SAR</span>
         </div>
     </div>
 

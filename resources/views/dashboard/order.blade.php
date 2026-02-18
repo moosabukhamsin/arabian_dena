@@ -118,9 +118,9 @@
                                                             Active
                                                         @endif
                                                     </td>
-                                                    <td>${{ number_format($OrderItem->unit_price ?? 0, 2) }}</td>
+                                                    <td>{{ number_format($OrderItem->unit_price ?? 0, 2) }} SAR</td>
                                                     <td>{{ $OrderItem->duration_days ?? 0 }} days</td>
-                                                    <td>${{ number_format($OrderItem->total_price ?? 0, 2) }}</td>
+                                                    <td>{{ number_format($OrderItem->total_price ?? 0, 2) }} SAR</td>
                                                     <td class=" table_input">
                                                         {{-- @if (!$OrderItem->end_date )
                                                             <form action="{{ route('dashboard.update_order_item',$OrderItem) }}" method="POST" >

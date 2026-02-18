@@ -45,7 +45,7 @@
                                                     <td>{{ $order->Company->name }}</td>
                                                     <td>{{ $order->site_code }}</td>
                                                     <td>{{ $order->OrderItems->count() }}</td>
-                                                    <td>${{ number_format($order->total_amount ?? 0, 2) }}</td>
+                                                    <td>{{ number_format($order->total_amount ?? 0, 2) }} SAR</td>
                                                     <td>
                                                         <a href="{{ route('dashboard.order', $order->id) }}" >
                                                             <button id="bView" type="button" class="btn btn-sm btn-info me-1">

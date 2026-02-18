@@ -96,7 +96,7 @@
                                                     <td>{{ $order->Company->name }}</td>
                                                     <td>{{ $order->site_code }}</td>
                                                     <td>{{ $order->OrderItems->count() }}</td>
-                                                    <td>${{ number_format($order->total_amount ?? 0, 2) }}</td>
+                                                    <td>{{ number_format($order->total_amount ?? 0, 2) }} SAR</td>
                                                     <td>
                                                         <button class="btn btn-sm btn-primary me-1" data-bs-toggle="modal" data-bs-target="#editOrderModal{{ $order->id }}">
                                                             <span class="fe fe-edit"></span> Edit
@@ -234,7 +234,7 @@
 
                         <div class="form-group">
                             <label class="form-label">Employee</label>
-                            <select name="company_id" class="form-control" >
+                            <select name="company_id" class="form-control" required>
                                 <option disabled selected>Select Employee</option>
                                 @foreach ($Company->CompanyEmployees->where('is_active',true) as $Employee)
                                     <option value="{{ $Employee->id }}">{{ $Employee->name }}</option>
@@ -244,35 +244,35 @@
 
                         <div class="form-group">
                             <label class="form-label">Site Code</label>
-                            <input type="text" name="site_code" class="form-control" >
+                            <input type="text" name="site_code" class="form-control" required>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Delivery Date</label>
-                            <input type="date" name="delivery_date" class="form-control" >
+                            <input type="date" name="delivery_date" class="form-control" required>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Address</label>
-                            <textarea name="address" class="form-control" ></textarea>
+                            <textarea name="address" class="form-control" required></textarea>
                         </div>
                         <div class="form-group">
                             <label class="form-label">PO Reference</label>
-                            <input type="file" name="po_reference" class="form-control" >
+                            <input type="file" name="po_reference" class="form-control" required>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Truck Number</label>
-                            <input type="text" name="truck_number" class="form-control" placeholder="Enter truck number">
+                            <input type="text" name="truck_number" class="form-control" placeholder="Enter truck number" required>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Driver Name</label>
-                            <input type="text" name="driver_name" class="form-control" placeholder="Enter driver name">
+                            <input type="text" name="driver_name" class="form-control" placeholder="Enter driver name" required>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Driver Mobile</label>
-                            <input type="text" name="driver_mobile" class="form-control" placeholder="Enter driver mobile number">
+                            <input type="text" name="driver_mobile" class="form-control" placeholder="Enter driver mobile number" required>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Driver ID Number</label>
-                            <input type="text" name="driver_id_number" class="form-control" placeholder="Enter driver ID number">
+                            <input type="text" name="driver_id_number" class="form-control" placeholder="Enter driver ID number" required>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Attachment</label>
