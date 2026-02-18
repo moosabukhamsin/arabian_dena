@@ -311,23 +311,23 @@
 
                         <div class="form-group">
                             <label class="form-label">Back Load Note</label>
-                            <input type="file" name="back_load_note" class="form-control" >
+                            <input type="file" name="back_load_note" class="form-control" required>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Truck Number</label>
-                            <input type="text" name="truck_number" class="form-control" placeholder="Enter truck number">
+                            <input type="text" name="truck_number" class="form-control" placeholder="Enter truck number" required>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Driver Name</label>
-                            <input type="text" name="driver_name" class="form-control" placeholder="Enter driver name">
+                            <input type="text" name="driver_name" class="form-control" placeholder="Enter driver name" required>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Driver Mobile</label>
-                            <input type="text" name="driver_mobile" class="form-control" placeholder="Enter driver mobile number">
+                            <input type="text" name="driver_mobile" class="form-control" placeholder="Enter driver mobile number" required>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Driver ID Number</label>
-                            <input type="text" name="driver_id_number" class="form-control" placeholder="Enter driver ID number">
+                            <input type="text" name="driver_id_number" class="form-control" placeholder="Enter driver ID number" required>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Attachment</label>
