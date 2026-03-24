@@ -174,6 +174,12 @@
                 <p>Sign in to continue to Arabian Dena</p>
             </div>
             <div class="login-body">
+                @if (session('session_expired'))
+                    <div class="alert alert-danger">
+                        Your session has expired. Please sign in again.
+                    </div>
+                @endif
+
                 @if ($errors->any())
                     <div class="alert alert-danger">
                         <ul class="mb-0">
