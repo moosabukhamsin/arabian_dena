@@ -16,6 +16,8 @@ use App\Models\Backload;
 use App\Models\BackloadItem;
 use App\Models\CompanyPriceList;
 use App\Services\ProductItemStatusService;
+use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Validator;
 
 
 class DashboardController extends Controller
@@ -232,6 +234,11 @@ class DashboardController extends Controller
     }
     public function StoreProductItem(Request $request, Product $Product)
     {
+        Validator::make($request->all(), [
+            'series_number' => ['required', 'string', 'max:255', Rule::unique('product_items', 'series_number')],
+            'product_id' => ['required', 'integer', Rule::exists('products', 'id')],
+        ])->validateWithBag('createProductItem');
+
         $data = $request->all();
         $data['is_active'] = true;
         $data['product_id'] = $Product->id;
@@ -246,6 +253,16 @@ class DashboardController extends Controller
     }
     public function UpdateProductItem(Request $request, ProductItem $ProductItem)
     {
+        Validator::make($request->all(), [
+            'series_number' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('product_items', 'series_number')->ignore($ProductItem->id),
+            ],
+            'editing_product_item_id' => ['nullable', 'integer'],
+        ])->validateWithBag('updateProductItem');
+
         $ProductItem->update($request->all());
         return redirect()->back();
     }

@@ -15,6 +15,15 @@
                     </div>
                 </div>
                 <!-- PAGE-HEADER END -->
+                @if ($errors->any())
+                    <div class="alert alert-danger">
+                        <ul class="mb-0">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
 
                 <!-- ROW-1 -->
                 <div class="row row-sm">
@@ -106,21 +115,32 @@
                                 </button>
                             </div>
                             <form id="addProductItemForm">
+                                @csrf
                                 <div class="modal-body">
                                     <div class="form-group">
                                         <label class="form-label">Product</label>
-                                        <select name="product_id" class="form-control" required>
+                                        <select name="product_id" class="form-control @if($errors->createProductItem->has('product_id')) is-invalid @endif" required>
                                             <option value="">Select a product</option>
                                             @foreach ($products as $product)
-                                                <option value="{{ $product->id }}">
+                                                <option value="{{ $product->id }}" {{ old('product_id') == $product->id ? 'selected' : '' }}>
                                                     {{ $product->name }}
                                                 </option>
                                             @endforeach
                                         </select>
+                                        @if($errors->createProductItem->has('product_id'))
+                                            <span class="invalid-feedback d-block" role="alert">
+                                                <strong>{{ $errors->createProductItem->first('product_id') }}</strong>
+                                            </span>
+                                        @endif
                                     </div>
                                     <div class="form-group">
                                         <label class="form-label">Series Number</label>
-                                        <input type="text" name="series_number" class="form-control" placeholder="Enter series number" required>
+                                        <input type="text" name="series_number" class="form-control @if($errors->createProductItem->has('series_number')) is-invalid @endif" placeholder="Enter series number" value="{{ old('series_number') }}" required>
+                                        @if($errors->createProductItem->has('series_number'))
+                                            <span class="invalid-feedback d-block" role="alert">
+                                                <strong>{{ $errors->createProductItem->first('series_number') }}</strong>
+                                            </span>
+                                        @endif
                                     </div>
                                 </div>
                                 <div class="modal-footer">
@@ -145,10 +165,16 @@
                             </div>
                             <form action="{{ route('dashboard.update_product_item', $productItem->id) }}" method="POST">
                                 @csrf
+                                <input type="hidden" name="editing_product_item_id" value="{{ $productItem->id }}">
                                 <div class="modal-body">
                                     <div class="form-group">
                                         <label class="form-label">Series Number</label>
-                                        <input type="text" name="series_number" class="form-control" value="{{ $productItem->series_number }}" required>
+                                        <input type="text" name="series_number" class="form-control @if(old('editing_product_item_id') == $productItem->id && $errors->updateProductItem->has('series_number')) is-invalid @endif" value="{{ old('editing_product_item_id') == $productItem->id ? old('series_number') : $productItem->series_number }}" required>
+                                        @if(old('editing_product_item_id') == $productItem->id && $errors->updateProductItem->has('series_number'))
+                                            <span class="invalid-feedback d-block" role="alert">
+                                                <strong>{{ $errors->updateProductItem->first('series_number') }}</strong>
+                                            </span>
+                                        @endif
                                     </div>
                                     <div class="form-group">
                                         <label class="form-label">Status</label>
@@ -177,45 +203,33 @@
     <!--app-content close-->
 
     <script>
-        // Handle add product item form submission
+        // Handle add product item form submission as a normal POST
         document.getElementById('addProductItemForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            const formData = new FormData(this);
-            const productId = formData.get('product_id');
-
+            const productId = this.querySelector('[name="product_id"]').value;
             if (!productId) {
-                alert('Please select a product.');
+                e.preventDefault();
                 return;
             }
 
-            // Submit to the correct route
             this.action = `/product/${productId}/create_product_item`;
             this.method = 'POST';
+        });
 
-            // Add CSRF token
-            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-            formData.append('_token', csrfToken);
+        // Reopen relevant modal after validation errors
+        document.addEventListener('DOMContentLoaded', function() {
+            @if ($errors->createProductItem->any())
+                const addModalEl = document.getElementById('addProductItemModal');
+                if (addModalEl) {
+                    new bootstrap.Modal(addModalEl).show();
+                }
+            @endif
 
-            // Submit the form
-            fetch(this.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRF-TOKEN': csrfToken
+            @if ($errors->updateProductItem->any() && old('editing_product_item_id'))
+                const editModalEl = document.getElementById('editProductItemModal{{ old('editing_product_item_id') }}');
+                if (editModalEl) {
+                    new bootstrap.Modal(editModalEl).show();
                 }
-            })
-            .then(response => {
-                if (response.ok) {
-                    location.reload();
-                } else {
-                    alert('Error adding product item.');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error adding product item.');
-            });
+            @endif
         });
     </script>
 
