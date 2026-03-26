@@ -28,10 +28,9 @@ Route::post('product/{Product}/update', [DashboardController::class, 'UpdateProd
 Route::get('product-items', [DashboardController::class, 'ProductItems'])->name('dashboard.product_items');
 Route::post('product/{Product}/create_product_item', [DashboardController::class, 'StoreProductItem'])->name('dashboard.store_product_item');
 Route::get('product_item/{ProductItem}', [DashboardController::class, 'ProductItem'])->name('dashboard.product_item');
+Route::get('product_item/{ProductItem}/certificate/download', [DashboardController::class, 'DownloadProductItemCertificate'])->name('dashboard.download_product_item_certificate');
 Route::get('product_item/{ProductItem}/delete', [DashboardController::class, 'DeleteProductItem'])->name('dashboard.delete_product_item');
 Route::post('product_item/{ProductItem}/update', [DashboardController::class, 'UpdateProductItem'])->name('dashboard.update_product_item');
-Route::post('product_item/{ProductItem}/create_certification', [DashboardController::class, 'StoreCertification'])->name('dashboard.store_certification');
-Route::get('certification/{ProductItemCertification}/delete', [DashboardController::class, 'DeleteCertification'])->name('dashboard.delete_certification');
 // company
 Route::get('/companies', [DashboardController::class, 'Companies'])->name('dashboard.companies');
 Route::post('/company/create', [DashboardController::class, 'StoreCompany'])->name('dashboard.store_company');

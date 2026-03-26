@@ -33,6 +33,9 @@
                                                 <th class="border-bottom-0">ID</th>
                                                 <th class="border-bottom-0">Product</th>
                                                 <th class="border-bottom-0">Series Number</th>
+                                                <th class="border-bottom-0">Inspection Date</th>
+                                                <th class="border-bottom-0">Due Days</th>
+                                                <th class="border-bottom-0">Certificate</th>
                                                 <th class="border-bottom-0">Status</th>
                                                 <th class="border-bottom-0">Actions</th>
                                             </tr>
@@ -50,6 +53,27 @@
                                                         {{ $ProductItem->product->name }}
                                                     </td>
                                                     <td>{{ $ProductItem->series_number }}</td>
+                                                    <td>{{ $ProductItem->inspection_date ?? '-' }}</td>
+                                                    <td>
+                                                        @if($ProductItem->inspection_date)
+                                                            @php
+                                                                $expiryDate = \Carbon\Carbon::parse($ProductItem->inspection_date)->addYear();
+                                                                $dueDays = (int) floor(now()->floatDiffInDays($expiryDate, false));
+                                                            @endphp
+                                                            {{ max($dueDays, 0) }}
+                                                        @else
+                                                            -
+                                                        @endif
+                                                    </td>
+                                                    <td>
+                                                        @if($ProductItem->certificate)
+                                                            <a href="{{ URL('storage/' . $ProductItem->certificate) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                                <i data-feather="file-text"></i> View
+                                                            </a>
+                                                        @else
+                                                            -
+                                                        @endif
+                                                    </td>
                                                     <td>
                                                         @if($ProductItem->status === 'In Stock')
                                                             <span class="badge bg-success">
@@ -116,6 +140,15 @@
                             <label class="form-label">series number</label>
                             <input type="text" name="series_number" class="form-control" required>
                         </div>
+                        <input type="hidden" name="product_id" value="{{ $Product->id }}">
+                        <div class="form-group">
+                            <label class="form-label">inspection date</label>
+                            <input type="date" name="inspection_date" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">certificate</label>
+                            <input type="file" name="certificate" class="form-control" required>
+                        </div>
 
                     </div>
                     <div class="modal-footer">
@@ -138,7 +171,7 @@
                         <span aria-hidden="true">×</span>
                     </button>
                 </div>
-                <form action="{{ route('dashboard.update_product_item', $ProductItem->id) }}" method="POST">
+                <form action="{{ route('dashboard.update_product_item', $ProductItem->id) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="modal-body">
                         <div class="form-group">
@@ -153,6 +186,19 @@
                                 <option value="Backloaded" {{ $ProductItem->status === 'Backloaded' ? 'selected' : '' }}>Backloaded</option>
                             </select>
                             <small class="form-text text-muted">Status is automatically updated based on rental activity. Manual changes may be overridden.</small>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Inspection Date</label>
+                            <input type="date" name="inspection_date" class="form-control" value="{{ $ProductItem->inspection_date }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Certificate</label>
+                            <input type="file" name="certificate" class="form-control">
+                            @if($ProductItem->certificate)
+                                <small class="form-text text-muted">
+                                    Current: <a href="{{ URL('storage/' . $ProductItem->certificate) }}" target="_blank">View certificate</a>
+                                </small>
+                            @endif
                         </div>
                     </div>
                     <div class="modal-footer">

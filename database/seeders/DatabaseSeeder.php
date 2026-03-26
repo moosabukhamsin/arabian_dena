@@ -20,7 +20,6 @@ class DatabaseSeeder extends Seeder
             CompanyEmployeeSeeder::class,
             ProductSeeder::class,
             ProductItemSeeder::class,
-            ProductItemCertificationSeeder::class,
             CompanyItemSeeder::class,
             CompanyPriceListSeeder::class,
             OrderItemCombinationSeeder::class,

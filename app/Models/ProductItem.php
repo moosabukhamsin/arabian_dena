@@ -17,10 +17,6 @@ class ProductItem extends Model
     {
         return $this->hasMany(OrderItem::class);
     }
-    public function ProductItemCertifications()
-    {
-        return $this->hasMany(ProductItemCertification::class);
-    }
 
     public function BackloadItems()
     {

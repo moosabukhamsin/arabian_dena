@@ -40,6 +40,8 @@
                                                 <th class="border-bottom-0">ID</th>
                                                 <th class="border-bottom-0">Product</th>
                                                 <th class="border-bottom-0">Series Number</th>
+                                                <th class="border-bottom-0">Inspection Date</th>
+                                                <th class="border-bottom-0">Due Days</th>
                                                 <th class="border-bottom-0">Status</th>
                                                 <th class="border-bottom-0">Actions</th>
                                             </tr>
@@ -57,6 +59,18 @@
                                                         {{ $productItem->product->name }}
                                                     </td>
                                                     <td>{{ $productItem->series_number }}</td>
+                                                    <td>{{ $productItem->inspection_date ?? '-' }}</td>
+                                                    <td>
+                                                        @if($productItem->inspection_date)
+                                                            @php
+                                                                $expiryDate = \Carbon\Carbon::parse($productItem->inspection_date)->addYear();
+                                                                $dueDays = (int) floor(now()->floatDiffInDays($expiryDate, false));
+                                                            @endphp
+                                                            {{ max($dueDays, 0) }}
+                                                        @else
+                                                            -
+                                                        @endif
+                                                    </td>
                                                     <td>
                                                         @if($productItem->status === 'In Stock')
                                                             <span class="badge bg-success">
@@ -92,7 +106,7 @@
                                                 </tr>
                                             @empty
                                                 <tr>
-                                                    <td colspan="5" class="text-center">No product items found.</td>
+                                                    <td colspan="6" class="text-center">No product items found.</td>
                                                 </tr>
                                             @endforelse
                                         </tbody>
@@ -114,7 +128,7 @@
                                     <span aria-hidden="true">×</span>
                                 </button>
                             </div>
-                            <form id="addProductItemForm">
+                            <form id="addProductItemForm" enctype="multipart/form-data">
                                 @csrf
                                 <div class="modal-body">
                                     <div class="form-group">
@@ -142,6 +156,24 @@
                                             </span>
                                         @endif
                                     </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Inspection Date</label>
+                                        <input type="date" name="inspection_date" class="form-control @if($errors->createProductItem->has('inspection_date')) is-invalid @endif" value="{{ old('inspection_date') }}">
+                                        @if($errors->createProductItem->has('inspection_date'))
+                                            <span class="invalid-feedback d-block" role="alert">
+                                                <strong>{{ $errors->createProductItem->first('inspection_date') }}</strong>
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Certificate</label>
+                                        <input type="file" name="certificate" class="form-control @if($errors->createProductItem->has('certificate')) is-invalid @endif">
+                                        @if($errors->createProductItem->has('certificate'))
+                                            <span class="invalid-feedback d-block" role="alert">
+                                                <strong>{{ $errors->createProductItem->first('certificate') }}</strong>
+                                            </span>
+                                        @endif
+                                    </div>
                                 </div>
                                 <div class="modal-footer">
                                     <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -163,7 +195,7 @@
                                     <span aria-hidden="true">×</span>
                                 </button>
                             </div>
-                            <form action="{{ route('dashboard.update_product_item', $productItem->id) }}" method="POST">
+                            <form action="{{ route('dashboard.update_product_item', $productItem->id) }}" method="POST" enctype="multipart/form-data">
                                 @csrf
                                 <input type="hidden" name="editing_product_item_id" value="{{ $productItem->id }}">
                                 <div class="modal-body">
@@ -184,6 +216,29 @@
                                             <option value="Backloaded" {{ $productItem->status === 'Backloaded' ? 'selected' : '' }}>Backloaded</option>
                                         </select>
                                         <small class="form-text text-muted">Status is automatically updated based on rental activity. Manual changes may be overridden.</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Inspection Date</label>
+                                        <input type="date" name="inspection_date" class="form-control @if(old('editing_product_item_id') == $productItem->id && $errors->updateProductItem->has('inspection_date')) is-invalid @endif" value="{{ old('editing_product_item_id') == $productItem->id ? old('inspection_date') : $productItem->inspection_date }}">
+                                        @if(old('editing_product_item_id') == $productItem->id && $errors->updateProductItem->has('inspection_date'))
+                                            <span class="invalid-feedback d-block" role="alert">
+                                                <strong>{{ $errors->updateProductItem->first('inspection_date') }}</strong>
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Certificate</label>
+                                        <input type="file" name="certificate" class="form-control @if(old('editing_product_item_id') == $productItem->id && $errors->updateProductItem->has('certificate')) is-invalid @endif">
+                                        @if($productItem->certificate)
+                                            <small class="form-text text-muted">
+                                                Current: <a href="{{ URL('storage/' . $productItem->certificate) }}" target="_blank">View certificate</a>
+                                            </small>
+                                        @endif
+                                        @if(old('editing_product_item_id') == $productItem->id && $errors->updateProductItem->has('certificate'))
+                                            <span class="invalid-feedback d-block" role="alert">
+                                                <strong>{{ $errors->updateProductItem->first('certificate') }}</strong>
+                                            </span>
+                                        @endif
                                     </div>
                                 </div>
                                 <div class="modal-footer">

@@ -10,7 +10,6 @@ use App\Models\CompanyEmployee;
 use App\Models\Order;
 use Storage;
 use App\Models\ProductItem;
-use App\Models\ProductItemCertification;
 use App\Models\OrderItem;
 use App\Models\Backload;
 use App\Models\BackloadItem;
@@ -196,6 +195,9 @@ class DashboardController extends Controller
     {
         $data = $request->except(['image']);
         $data['is_active'] = true;
+        $data['daily_price'] = $request->filled('daily_price') ? $request->input('daily_price') : 20;
+        $data['weekly_price'] = $request->filled('weekly_price') ? $request->input('weekly_price') : 15;
+        $data['monthly_price'] = $request->filled('monthly_price') ? $request->input('monthly_price') : 10;
         if ($request->hasFile('image')) {
             $file = $request->file('image');
             $filename = Storage::disk('public')->put('/', $file);
@@ -232,17 +234,32 @@ class DashboardController extends Controller
     {
         return view('dashboard.product_item', ['ProductItem' => $ProductItem]);
     }
+    public function DownloadProductItemCertificate(ProductItem $ProductItem)
+    {
+        if (!$ProductItem->certificate || !Storage::disk('public')->exists($ProductItem->certificate)) {
+            return redirect()->back()->withErrors(['certificate' => 'Certificate file not found.']);
+        }
+
+        return Storage::disk('public')->download($ProductItem->certificate);
+    }
     public function StoreProductItem(Request $request, Product $Product)
     {
         Validator::make($request->all(), [
             'series_number' => ['required', 'string', 'max:255', Rule::unique('product_items', 'series_number')],
             'product_id' => ['required', 'integer', Rule::exists('products', 'id')],
+            'inspection_date' => ['required', 'date'],
+            'certificate' => ['required', 'file'],
         ])->validateWithBag('createProductItem');
 
-        $data = $request->all();
+        $data = $request->except(['certificate']);
         $data['is_active'] = true;
         $data['product_id'] = $Product->id;
         $data['status'] = 'In Stock'; // Set default status to In Stock
+        if ($request->hasFile('certificate')) {
+            $file = $request->file('certificate');
+            $filename = Storage::disk('public')->put('/', $file);
+            $data['certificate'] = $filename;
+        }
         ProductItem::create($data);
         return redirect()->back();
     }
@@ -261,26 +278,18 @@ class DashboardController extends Controller
                 Rule::unique('product_items', 'series_number')->ignore($ProductItem->id),
             ],
             'editing_product_item_id' => ['nullable', 'integer'],
+            'inspection_date' => ['nullable', 'date'],
+            'certificate' => ['nullable', 'file'],
         ])->validateWithBag('updateProductItem');
 
-        $ProductItem->update($request->all());
-        return redirect()->back();
-    }
-    public function StoreCertification(Request $request,ProductItem $ProductItem)
-    {
-        $data = $request->except(['file']);
-        if ($request->hasFile('file')) {
-            $file = $request->file('file');
+        $data = $request->except(['editing_product_item_id', 'certificate']);
+        if ($request->hasFile('certificate')) {
+            $file = $request->file('certificate');
             $filename = Storage::disk('public')->put('/', $file);
-            $data['file'] = $filename;
+            $data['certificate'] = $filename;
         }
-        $data['product_item_id'] = $ProductItem->id;
-        ProductItemCertification::create($data);
-        return redirect()->back();
-    }
-    public function DeleteCertification(ProductItemCertification $Certification)
-    {
-        $Certification->delete();
+
+        $ProductItem->update($data);
         return redirect()->back();
     }
     // orders

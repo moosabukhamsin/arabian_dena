@@ -106,7 +106,7 @@
                                 <div class="form-group">
                                     <label class="form-label">image</label>
                                     <input type="file" name="image" class="form-control" >
-                                <div class="form-group">
+                                <!-- <div class="form-group">
                                     <label class="form-label">default daily price</label>
                                     <input type="number" name="daily_price" class="form-control"  >
                                 </div>
@@ -117,7 +117,7 @@
                                 <div class="form-group">
                                     <label class="form-label">default monthly price</label>
                                     <input type="number" name="monthly_price" class="form-control"  >
-                                </div>
+                                </div> -->
                                 <div class="form-group">
                                     <label class="form-label">category</label>
                                     <select name="category_id" class="form-control" required>
