@@ -59,6 +59,65 @@
                         <!-- LOGO -->
 
                         <div class="d-flex order-lg-2 ms-auto header-right-icons">
+                            @php
+                                $unreadNotificationsCount = Auth::user()->unreadNotifications()->count();
+                                $latestNotifications = Auth::user()->notifications()->latest()->limit(8)->get();
+                            @endphp
+                            <div class="dropdown me-2">
+                                <a class="nav-link icon position-relative" data-bs-toggle="dropdown">
+                                    <i class="fe fe-bell"></i>
+                                    @if($unreadNotificationsCount > 0)
+                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                            {{ $unreadNotificationsCount > 99 ? '99+' : $unreadNotificationsCount }}
+                                        </span>
+                                    @endif
+                                </a>
+                                <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow p-0" style="min-width: 340px;">
+                                    <div class="dropdown-header d-flex justify-content-between align-items-center py-2">
+                                        <span class="fw-semibold">Notifications</span>
+                                        @if($unreadNotificationsCount > 0)
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="badge bg-primary">{{ $unreadNotificationsCount }} unread</span>
+                                                <form method="POST" action="{{ route('dashboard.notifications.read_all') }}">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-sm btn-outline-primary py-0 px-2">Mark all read</button>
+                                                </form>
+                                            </div>
+                                        @endif
+                                    </div>
+                                    <div class="list-group list-group-flush" style="max-height: 360px; overflow-y: auto;">
+                                        @forelse($latestNotifications as $notification)
+                                            @php $notificationData = $notification->data; @endphp
+                                            <div class="list-group-item py-2 px-3 @if(is_null($notification->read_at)) bg-light @endif">
+                                                <div class="fw-semibold text-wrap">
+                                                    {{ $notificationData['title'] ?? 'Notification' }}
+                                                </div>
+                                                <div class="small text-muted text-wrap">
+                                                    {{ $notificationData['message'] ?? '' }}
+                                                </div>
+                                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                                    <div class="small text-muted">
+                                                        {{ $notification->created_at?->diffForHumans() }}
+                                                    </div>
+                                                    <div class="d-flex align-items-center gap-1">
+                                                        @if(!empty($notificationData['url']))
+                                                            <a href="{{ $notificationData['url'] }}" class="btn btn-sm btn-outline-secondary py-0 px-2">Open</a>
+                                                        @endif
+                                                        @if(is_null($notification->read_at))
+                                                            <form method="POST" action="{{ route('dashboard.notifications.read', $notification->id) }}">
+                                                                @csrf
+                                                                <button type="submit" class="btn btn-sm btn-outline-primary py-0 px-2">Mark as read</button>
+                                                            </form>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @empty
+                                            <div class="px-3 py-3 text-muted small">No notifications yet.</div>
+                                        @endforelse
+                                    </div>
+                                </div>
+                            </div>
                             <div class="dropdown">
                                 <a class="nav-link icon" data-bs-toggle="dropdown">
                                     <i class="fe fe-user"></i>

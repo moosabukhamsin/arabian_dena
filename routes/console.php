@@ -9,3 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote')->hourly();
 
 Schedule::command('product-items:notify-expired-certifications')->dailyAt('08:00');
+Schedule::command('product-items:notify-inactive-90-days')->dailyAt('08:10');

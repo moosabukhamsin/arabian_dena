@@ -31,6 +31,8 @@ Route::get('product_item/{ProductItem}', [DashboardController::class, 'ProductIt
 Route::get('product_item/{ProductItem}/certificate/download', [DashboardController::class, 'DownloadProductItemCertificate'])->name('dashboard.download_product_item_certificate');
 Route::get('product_item/{ProductItem}/delete', [DashboardController::class, 'DeleteProductItem'])->name('dashboard.delete_product_item');
 Route::post('product_item/{ProductItem}/update', [DashboardController::class, 'UpdateProductItem'])->name('dashboard.update_product_item');
+Route::post('notifications/{notification}/read', [DashboardController::class, 'MarkNotificationAsRead'])->name('dashboard.notifications.read');
+Route::post('notifications/read-all', [DashboardController::class, 'MarkAllNotificationsAsRead'])->name('dashboard.notifications.read_all');
 // company
 Route::get('/companies', [DashboardController::class, 'Companies'])->name('dashboard.companies');
 Route::post('/company/create', [DashboardController::class, 'StoreCompany'])->name('dashboard.store_company');

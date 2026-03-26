@@ -17,6 +17,7 @@ use App\Models\CompanyPriceList;
 use App\Services\ProductItemStatusService;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Notifications\DatabaseNotification;
 
 
 class DashboardController extends Controller
@@ -241,6 +242,22 @@ class DashboardController extends Controller
         }
 
         return Storage::disk('public')->download($ProductItem->certificate);
+    }
+    public function MarkNotificationAsRead(DatabaseNotification $notification)
+    {
+        if ($notification->notifiable_id !== auth()->id()) {
+            abort(403);
+        }
+
+        $notification->markAsRead();
+
+        return redirect()->back();
+    }
+    public function MarkAllNotificationsAsRead()
+    {
+        auth()->user()->unreadNotifications->markAsRead();
+
+        return redirect()->back();
     }
     public function StoreProductItem(Request $request, Product $Product)
     {
@@ -620,6 +637,7 @@ class DashboardController extends Controller
         $data = $request->all();
         $data['order_id'] = $Order->id;
         $orderItem = OrderItem::create($data);
+        $orderItem->productItem?->update(['inactive_90d_notified_at' => null]);
         
         // Update ProductItem status
         $statusService = new ProductItemStatusService();
@@ -691,6 +709,7 @@ class DashboardController extends Controller
         $data = $request->all();
         $data['backload_id'] = $Backload->id;
         $backloadItem = BackloadItem::create($data);
+        $backloadItem->orderItem->productItem->update(['inactive_90d_notified_at' => null]);
         
         // Immediately set status to Backloaded when BackloadItem is created
         $backloadItem->orderItem->productItem->update(['status' => 'Backloaded']);
