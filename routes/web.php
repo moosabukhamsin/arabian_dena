@@ -60,6 +60,7 @@ Route::get('order_item/{OrderItem}/delete', [DashboardController::class, 'Delete
 // backloads
 Route::get('backloads', [DashboardController::class, 'Backloads'])->name('dashboard.backloads');
 Route::get('backload/{Backload}', [DashboardController::class, 'Backload'])->name('dashboard.backload');
+Route::get('backload/{Backload}/backload-note', [DashboardController::class, 'BackloadNote'])->name('dashboard.backload_note');
 Route::get('backload/{Backload}/delete', [DashboardController::class, 'DeleteBackload'])->name('dashboard.delete_backload');
 Route::post('backload/{Backload}/update', [DashboardController::class, 'UpdateBackload'])->name('dashboard.update_backload');
 Route::post('backload/{Backload}/create_backload_item', [DashboardController::class, 'StoreBackloadItem'])->name('dashboard.store_backload_item');

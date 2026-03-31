@@ -483,6 +483,8 @@ class DashboardController extends Controller
             ->pluck('product_item_id')
             ->toArray();
 
+        $orderProductIds = is_array($Order->product_ids) ? $Order->product_ids : [];
+
         // Get available product items that are:
         // 1. Active (is_active = 1)
         // 2. Status is 'In Stock'
@@ -490,6 +492,12 @@ class DashboardController extends Controller
         // 4. Not currently rented by any company
         $ProductItems = ProductItem::where('is_active', 1)
             ->where('status', 'In Stock') // Only show items that are in stock
+            ->when(!empty($orderProductIds), function ($query) use ($orderProductIds) {
+                $query->whereIn('product_id', $orderProductIds);
+            }, function ($query) {
+                // If order has no selected products, show none to prevent mismatched order items
+                $query->whereRaw('1 = 0');
+            })
             ->whereNotIn('id', $Order->OrderItems()->pluck('product_item_id')->toArray()) // Not already in this order
             ->whereNotIn('id', $rentedProductItemIds) // Not currently rented by any company
             ->with('product') // Eager load product relationship for better performance
@@ -512,15 +520,47 @@ class DashboardController extends Controller
     {
         $Order->load(['Company', 'OrderItems.productItem.product']);
 
-        // Calculate pricing for each order item
+        $companyName = $Order->Company->name ?? '';
+        $clientCode = $this->companyNameInitials($companyName);
+
+        $productIds = is_array($Order->product_ids) ? $Order->product_ids : [];
+        $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+        $requestedMap = is_array($Order->product_quantities) ? $Order->product_quantities : [];
+
+        $seriesByProductId = [];
         foreach ($Order->OrderItems as $orderItem) {
-            $pricingInfo = $this->calculateOrderItemPricing($orderItem, $Order->Company);
-            $orderItem->unit_price = $pricingInfo['unit_price'];
-            $orderItem->duration_days = $pricingInfo['duration_days'];
-            $orderItem->total_price = $pricingInfo['total_price'];
+            $productId = $orderItem->productItem?->product_id;
+            $series = $orderItem->productItem?->series_number;
+            if ($productId && $series) {
+                $seriesByProductId[(int) $productId][] = $series;
+            }
         }
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('dashboard.delivery_note', compact('Order'));
+        $rows = [];
+        $i = 1;
+        foreach ($productIds as $productId) {
+            $productId = (int) $productId;
+            $product = $products->get($productId);
+            if (!$product) {
+                continue;
+            }
+
+            $requestedQty = (int) ($requestedMap[$productId] ?? 0);
+            $seriesList = $seriesByProductId[$productId] ?? [];
+
+            $rows[] = [
+                'no' => $i++,
+                'product_name' => $product->name,
+                'requested_qty' => $requestedQty,
+                'series' => $seriesList,
+            ];
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('dashboard.delivery_note', [
+            'Order' => $Order,
+            'clientCode' => $clientCode,
+            'rows' => $rows,
+        ]);
         return $pdf->download('delivery_note_order_' . $Order->id . '.pdf');
     }
 
@@ -579,6 +619,62 @@ class DashboardController extends Controller
 
         $safeOrderNumber = $Order->order_number ?: ('order_' . $Order->id);
         return $pdf->download('order_request_' . $safeOrderNumber . '.pdf');
+    }
+
+    public function BackloadNote(Backload $Backload)
+    {
+        $Backload->load(['Company', 'BackloadItems.OrderItem.ProductItem.Product', 'BackloadItems.OrderItem.Order']);
+
+        $companyName = $Backload->Company->name ?? '';
+        $clientCode = $this->companyNameInitials($companyName);
+
+        $order = null;
+        $firstBackloadItem = $Backload->BackloadItems->first();
+        if ($firstBackloadItem?->OrderItem?->Order) {
+            $order = $firstBackloadItem->OrderItem->Order;
+        }
+
+        $byProduct = [];
+        foreach ($Backload->BackloadItems as $backloadItem) {
+            $product = $backloadItem->OrderItem?->ProductItem?->Product;
+            $productId = $product?->id;
+            $series = $backloadItem->OrderItem?->ProductItem?->series_number;
+            if (!$productId) {
+                continue;
+            }
+
+            if (!isset($byProduct[$productId])) {
+                $byProduct[$productId] = [
+                    'product_name' => $product?->name ?? '',
+                    'series' => [],
+                ];
+            }
+
+            if ($series) {
+                $byProduct[$productId]['series'][] = $series;
+            }
+        }
+
+        $rows = [];
+        $i = 1;
+        foreach ($byProduct as $data) {
+            $series = $data['series'] ?? [];
+            $rows[] = [
+                'no' => $i++,
+                'product_name' => $data['product_name'] ?? '',
+                'returned_qty' => count($series),
+                'series' => $series,
+            ];
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('dashboard.backload_note', [
+            'Backload' => $Backload,
+            'Order' => $order,
+            'clientCode' => $clientCode,
+            'rows' => $rows,
+        ]);
+
+        return $pdf->download('backload_note_' . $Backload->id . '.pdf');
     }
 
     private function calculateOrderItemPricing($orderItem, $company)

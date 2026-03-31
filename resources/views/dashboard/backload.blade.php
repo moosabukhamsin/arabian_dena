@@ -8,6 +8,11 @@
                 <!-- PAGE-HEADER -->
                 <div class="page-header">
                     <h1 class="page-title">Backload Items</h1>
+                    <div class="page-options">
+                        <a href="{{ route('dashboard.backload_note', $Backload->id) }}" class="btn btn-warning">
+                            <i class="fe fe-download"></i> Backload Note
+                        </a>
+                    </div>
                 </div>
                 <!-- PAGE-HEADER END -->
                 <!-- ROW-2 -->

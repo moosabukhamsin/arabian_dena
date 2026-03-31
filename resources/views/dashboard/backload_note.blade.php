@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Delivery Note - {{ $Order->order_number ?? ('Order #' . $Order->id) }}</title>
+    <title>Backload Note - Backload #{{ $Backload->id }}</title>
     <style>
         @page { margin: 16px; }
         body { font-family: Arial, sans-serif; font-size: 10px; color: #111; }
@@ -17,15 +17,15 @@
         .brand small { display: block; font-size: 9px; letter-spacing: 0; font-weight: normal; }
         .right-meta { text-align: right; font-size: 9px; line-height: 1.35; }
 
+        .title { text-align: center; font-weight: bold; margin: 6px 0 8px; }
+
         .box { width: 100%; border-collapse: collapse; margin-top: 6px; }
         .box td, .box th { border: 1px solid #333; padding: 4px 6px; }
-        .box th { background: #e9ecef; text-align: left; font-weight: bold; width: 16%; }
-
-        .title { text-align: center; font-weight: bold; margin: 6px 0 8px; }
+        .box th { background: #f4d45f; text-align: left; font-weight: bold; width: 16%; }
 
         .items { width: 100%; border-collapse: collapse; margin-top: 8px; }
         .items th, .items td { border: 1px solid #333; padding: 5px 6px; }
-        .items th { background: #e9ecef; text-align: center; }
+        .items th { background: #f4d45f; text-align: center; }
         .items td.num { width: 6%; text-align: center; }
         .items td.qty { width: 10%; text-align: center; }
         .items td.desc { width: 54%; }
@@ -35,11 +35,12 @@
 
         .driver { width: 100%; border-collapse: collapse; margin-top: 10px; }
         .driver td { border: 1px solid #333; padding: 5px 6px; }
-        .driver .label { background: #e9ecef; font-weight: bold; width: 16%; }
+        .driver .label { background: #f4d45f; font-weight: bold; width: 16%; }
 
-        .sign { width: 100%; border-collapse: collapse; margin-top: 18px; }
+        .sign { width: 100%; border-collapse: collapse; margin-top: 12px; }
         .sign th, .sign td { border: 1px solid #333; padding: 6px; text-align: center; }
-        .sign th { background: #e9ecef; font-weight: bold; }
+        .sign th { background: #f4d45f; font-weight: bold; }
+        .sign .approve { color: #c00; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -62,36 +63,36 @@
             </tr>
         </table>
 
-        <div class="title">DELIVERY NOTE</div>
+        <div class="title">BACKLOAD NOTE</div>
 
         <table class="box">
             <tr>
-                <th>Delivered To</th>
-                <td>{{ $Order->Company->name ?? '' }}</td>
-                <th>DN#</th>
-                <td>{{ $Order->order_number ?? '' }}</td>
+                <th>Received From</th>
+                <td>{{ $Backload->Company->name ?? '' }}</td>
+                <th>BLKD#</th>
+                <td style="color:#c00; font-weight:bold;"></td>
             </tr>
             <tr>
-                <th>Contact</th>
-                <td>{{ $Order->Company->mobile_number ?? '' }}</td>
-                <th>Site</th>
-                <td>{{ $Order->site_code ?? '' }}</td>
+                <th>Contact #</th>
+                <td>{{ $Backload->Company->mobile_number ?? '' }}</td>
+                <th></th>
+                <td></td>
             </tr>
             <tr>
                 <th>Email</th>
-                <td>{{ $Order->Company->email ?? '' }}</td>
-                <th>P.O. Ref #</th>
-                <td>{{ $Order->po_reference ? basename($Order->po_reference) : '' }}</td>
+                <td>{{ $Backload->Company->email ?? '' }}</td>
+                <th></th>
+                <td></td>
             </tr>
             <tr>
                 <th>Client Code</th>
                 <td>{{ $clientCode ?? '' }}</td>
-                <th>Address</th>
-                <td>{{ $Order->address ?? '' }}</td>
+                <th></th>
+                <td></td>
             </tr>
             <tr>
                 <th>Date</th>
-                <td>{{ $Order->created_at ? $Order->created_at->format('d F Y') : '' }}</td>
+                <td>{{ $Backload->created_at ? $Backload->created_at->format('d F Y') : '' }}</td>
                 <th></th>
                 <td></td>
             </tr>
@@ -109,11 +110,11 @@
             <tbody>
                 @php $totalQty = 0; @endphp
                 @foreach ($rows as $row)
-                    @php $totalQty += (int) ($row['requested_qty'] ?? 0); @endphp
+                    @php $totalQty += (int) ($row['returned_qty'] ?? 0); @endphp
                     <tr>
                         <td class="num">{{ $row['no'] }}</td>
                         <td class="desc">{{ $row['product_name'] }}</td>
-                        <td class="qty">{{ $row['requested_qty'] }}</td>
+                        <td class="qty">{{ $row['returned_qty'] }}</td>
                         <td class="track">
                             @php $series = $row['series'] ?? []; @endphp
                             @if (count($series))
@@ -138,30 +139,34 @@
         <table class="driver">
             <tr>
                 <td class="label">Driver Name</td>
-                <td>{{ $Order->driver_name ?? '' }}</td>
+                <td>{{ $Backload->driver_name ?? '' }}</td>
                 <td class="label">Driver Contact #</td>
-                <td>{{ $Order->driver_mobile ?? '' }}</td>
+                <td>{{ $Backload->driver_mobile ?? '' }}</td>
             </tr>
             <tr>
-                <td class="label">Vehicle</td>
-                <td>{{ $Order->truck_number ?? '' }}</td>
-                <td class="label">Remarks</td>
+                <td class="label">Vehicle #</td>
+                <td>{{ $Backload->truck_number ?? '' }}</td>
+                <td class="label">Remarks for Driver</td>
                 <td></td>
             </tr>
         </table>
 
         <table class="sign">
             <tr>
-                <th>Delivered By</th>
+                <th>ADCE Received By</th>
                 <th>Authorised By</th>
-                <th>Received By</th>
+                <th>CLIENT Received By</th>
             </tr>
             <tr>
-                <td style="height: 70px;"></td>
-                <td style="height: 70px;"></td>
-                <td style="height: 70px;"></td>
+                <td style="height: 42px;"></td>
+                <td style="height: 42px;"></td>
+                <td style="height: 42px;"></td>
+            </tr>
+            <tr>
+                <td colspan="3" class="approve">Electronically Approved</td>
             </tr>
         </table>
     </div>
 </body>
 </html>
+
