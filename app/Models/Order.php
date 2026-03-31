@@ -9,6 +9,11 @@ class Order extends Model
 {
     use HasFactory;
     protected $guarded = ['id'];
+
+    protected $casts = [
+        'product_ids' => 'array',
+        'product_quantities' => 'array',
+    ];
     public function OrderItemCombinations()
     {
         return $this->hasMany(OrderItemCombination::class);

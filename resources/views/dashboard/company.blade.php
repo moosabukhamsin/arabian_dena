@@ -82,7 +82,7 @@
                                             <tr>
                                                 <th class="border-bottom-0">ID</th>
                                                 <th class="border-bottom-0">Company Name</th>
-                                                <th class="border-bottom-0">Site Code</th>
+                                                <th class="border-bottom-0">Site Name</th>
                                                 <th class="border-bottom-0">Item Count</th>
                                                 <th class="border-bottom-0">Total</th>
                                                 <th class="border-bottom-0">Actions</th>
@@ -243,40 +243,26 @@
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label">Site Code</label>
-                            <input type="text" name="site_code" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Delivery Date</label>
-                            <input type="date" name="delivery_date" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Address</label>
-                            <textarea name="address" class="form-control" required></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">PO Reference</label>
-                            <input type="file" name="po_reference" class="form-control" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Truck Number</label>
-                            <input type="text" name="truck_number" class="form-control" placeholder="Enter truck number" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Driver Name</label>
-                            <input type="text" name="driver_name" class="form-control" placeholder="Enter driver name" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Driver Mobile</label>
-                            <input type="text" name="driver_mobile" class="form-control" placeholder="Enter driver mobile number" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Driver ID Number</label>
-                            <input type="text" name="driver_id_number" class="form-control" placeholder="Enter driver ID number" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Attachment</label>
-                            <input type="file" name="attachment" class="form-control">
+                            <label class="form-label">Products</label>
+                            <div class="p-2 border" style="max-height: 220px; overflow: auto;">
+                                @foreach ($products as $product)
+                                    <div class="d-flex align-items-center gap-3 mb-2">
+                                        <label class="d-flex align-items-center gap-2 mb-0">
+                                            <input type="checkbox" name="product_ids[]" value="{{ $product->id }}">
+                                            <span>{{ $product->name }}</span>
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            step="1"
+                                            name="product_quantities[{{ $product->id }}]"
+                                            class="form-control"
+                                            style="max-width: 140px;"
+                                            placeholder="Qty"
+                                        >
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
 
 
@@ -361,6 +347,10 @@
                     @csrf
                     <div class="modal-body">
                         <div class="form-group">
+                            <label class="form-label">Order Number</label>
+                            <input type="text" class="form-control" value="{{ $order->order_number }}" readonly>
+                        </div>
+                        <div class="form-group">
                             <label class="form-label">Employee</label>
                             <select name="company_employe_id" class="form-control" required>
                                 @foreach ($Company->CompanyEmployees->where('is_active',true) as $Employee)
@@ -371,16 +361,44 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Site Code</label>
-                            <input type="text" name="site_code" class="form-control" value="{{ $order->site_code }}" required>
+                            <label class="form-label">Site Name</label>
+                            <input type="text" name="site_code" class="form-control" value="{{ $order->site_code }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Products</label>
+                            <div class="p-2 border" style="max-height: 220px; overflow: auto;">
+                                @foreach ($products as $product)
+                                    <div class="d-flex align-items-center gap-3 mb-2">
+                                        <label class="d-flex align-items-center gap-2 mb-0">
+                                            <input
+                                                type="checkbox"
+                                                name="product_ids[]"
+                                                value="{{ $product->id }}"
+                                                {{ in_array($product->id, $order->product_ids ?? [], true) ? 'checked' : '' }}
+                                            >
+                                            <span>{{ $product->name }}</span>
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            step="1"
+                                            name="product_quantities[{{ $product->id }}]"
+                                            class="form-control"
+                                            style="max-width: 140px;"
+                                            placeholder="Qty"
+                                            value="{{ ($order->product_quantities[$product->id] ?? '') }}"
+                                        >
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Delivery Date</label>
-                            <input type="date" name="delivery_date" class="form-control" value="{{ $order->delivery_date }}" required>
+                            <input type="date" name="delivery_date" class="form-control" value="{{ $order->delivery_date }}">
                         </div>
                         <div class="form-group">
                             <label class="form-label">Address</label>
-                            <textarea name="address" class="form-control" required>{{ $order->address }}</textarea>
+                            <textarea name="address" class="form-control">{{ $order->address }}</textarea>
                         </div>
                         <div class="form-group">
                             <label class="form-label">PO Reference</label>
@@ -418,6 +436,7 @@
                                 <option value="pending" {{ $order->status === 'pending' ? 'selected' : '' }}>Pending</option>
                                 <option value="in_progress" {{ $order->status === 'in_progress' ? 'selected' : '' }}>In Progress</option>
                                 <option value="completed" {{ $order->status === 'completed' ? 'selected' : '' }}>Completed</option>
+                                <option value="cancelled" {{ $order->status === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                             </select>
                         </div>
                     </div>

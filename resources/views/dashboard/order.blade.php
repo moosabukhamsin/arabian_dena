@@ -9,6 +9,9 @@
                 <div class="page-header">
                     <h1 class="page-title">Order #{{ $Order->id }} - {{ $Order->Company->name }}</h1>
                     <div class="page-options">
+                        <a href="{{ route('dashboard.order_request', $Order->id) }}" class="btn btn-warning me-2">
+                            <i class="fe fe-download"></i> Order Request
+                        </a>
                         <a href="{{ route('dashboard.delivery_note', $Order->id) }}" class="btn btn-success">
                             <i class="fe fe-download"></i> Delivery Note
                         </a>

@@ -22,6 +22,45 @@ use Illuminate\Notifications\DatabaseNotification;
 
 class DashboardController extends Controller
 {
+    private function companyNameInitials(string $companyName): string
+    {
+        $words = preg_split('/[^A-Za-z0-9]+/', trim($companyName), -1, PREG_SPLIT_NO_EMPTY);
+        $initials = '';
+
+        foreach ($words as $word) {
+            $initials .= strtoupper(substr($word, 0, 1));
+        }
+
+        return $initials !== '' ? $initials : 'COMP';
+    }
+
+    private function generateOrderNumberForCompany(Company $company): string
+    {
+        $prefix = $this->companyNameInitials($company->name ?? '');
+        $year = now()->format('Y');
+        $month = now()->format('m');
+
+        $rmrl = 'ORD';
+        $base = "{$prefix}-{$year}-{$rmrl}-{$month}-";
+
+        $lastForScope = Order::query()
+            ->where('order_number', 'like', $base . '%')
+            ->orderByDesc('order_number')
+            ->value('order_number');
+
+        $lastSeq = 0;
+        if (is_string($lastForScope) && str_starts_with($lastForScope, $base)) {
+            $suffix = substr($lastForScope, strlen($base));
+            if (ctype_digit($suffix)) {
+                $lastSeq = (int) $suffix;
+            }
+        }
+
+        $nextSeq = $lastSeq + 1;
+        $seq3 = str_pad((string) $nextSeq, 3, '0', STR_PAD_LEFT);
+
+        return $base . $seq3;
+    }
 
     public function Index()
     {
@@ -162,7 +201,9 @@ class DashboardController extends Controller
             $order->total_amount = $totalAmount;
         }
 
-        return view('dashboard.company', ['Company' => $Company]);
+        $products = Product::where('is_active', 1)->get();
+
+        return view('dashboard.company', ['Company' => $Company, 'products' => $products]);
     }
     public function StoreEmployee(Request $request,Company $Company)
     {
@@ -314,11 +355,39 @@ class DashboardController extends Controller
     {
         $data = $request->except(['delivery_note']);
         $data['is_active'] = true;
+        if (isset($data['product_ids']) && is_array($data['product_ids'])) {
+            $data['product_ids'] = array_values(array_filter($data['product_ids'], fn ($v) => $v !== null && $v !== ''));
+        }
+        if (isset($data['product_quantities']) && is_array($data['product_quantities'])) {
+            $data['product_quantities'] = array_filter(
+                $data['product_quantities'],
+                fn ($qty) => $qty !== null && $qty !== '' && (int) $qty > 0
+            );
+        }
+
         if ($request->hasFile('delivery_note')) {
             $file = $request->file('delivery_note');
             $filename = Storage::disk('public')->put('/', $file);
             $data['delivery_note'] = $filename;
         }
+
+        $company = null;
+        if (!empty($data['company_id'])) {
+            $company = Company::find($data['company_id']);
+        }
+
+        if ($company) {
+            for ($i = 0; $i < 5; $i++) {
+                $data['order_number'] = $this->generateOrderNumberForCompany($company);
+                try {
+                    Order::create($data);
+                    return redirect()->route('dashboard.orders');
+                } catch (\Illuminate\Database\QueryException $e) {
+                    // retry on unique collision
+                }
+            }
+        }
+
         Order::create($data);
         return redirect()->route('dashboard.orders');
     }
@@ -327,11 +396,32 @@ class DashboardController extends Controller
         $data = $request->except(['delivery_note']);
         $data['is_active'] = true;
         $data['company_id'] = $Company->id;
+        if (isset($data['product_ids']) && is_array($data['product_ids'])) {
+            $data['product_ids'] = array_values(array_filter($data['product_ids'], fn ($v) => $v !== null && $v !== ''));
+        }
+        if (isset($data['product_quantities']) && is_array($data['product_quantities'])) {
+            $data['product_quantities'] = array_filter(
+                $data['product_quantities'],
+                fn ($qty) => $qty !== null && $qty !== '' && (int) $qty > 0
+            );
+        }
+
         if ($request->hasFile('delivery_note')) {
             $file = $request->file('delivery_note');
             $filename = Storage::disk('public')->put('/', $file);
             $data['delivery_note'] = $filename;
         }
+
+        for ($i = 0; $i < 5; $i++) {
+            $data['order_number'] = $this->generateOrderNumberForCompany($Company);
+            try {
+                Order::create($data);
+                return redirect()->back();
+            } catch (\Illuminate\Database\QueryException $e) {
+                // retry on unique collision
+            }
+        }
+
         Order::create($data);
         return redirect()->back();
     }
@@ -353,6 +443,18 @@ class DashboardController extends Controller
     public function UpdateOrder(Request $request, Order $Order)
     {
         $data = $request->except(['po_reference', 'attachment']);
+        unset($data['order_number']);
+
+        if (isset($data['product_ids']) && is_array($data['product_ids'])) {
+            $data['product_ids'] = array_values(array_filter($data['product_ids'], fn ($v) => $v !== null && $v !== ''));
+        }
+        if (isset($data['product_quantities']) && is_array($data['product_quantities'])) {
+            $data['product_quantities'] = array_filter(
+                $data['product_quantities'],
+                fn ($qty) => $qty !== null && $qty !== '' && (int) $qty > 0
+            );
+        }
+
         if ($request->hasFile('po_reference')) {
             $file = $request->file('po_reference');
             $filename = Storage::disk('public')->put('/', $file);
@@ -420,6 +522,63 @@ class DashboardController extends Controller
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('dashboard.delivery_note', compact('Order'));
         return $pdf->download('delivery_note_order_' . $Order->id . '.pdf');
+    }
+
+    public function OrderRequest(Order $Order)
+    {
+        $Order->load(['Company']);
+
+        $requester = null;
+        if (!empty($Order->company_employe_id)) {
+            $requester = CompanyEmployee::find($Order->company_employe_id);
+        } elseif (!empty($Order->company_id)) {
+            // Some older forms store employee id in company_id by mistake
+            $requester = CompanyEmployee::find($Order->company_id);
+        }
+
+        $productIds = is_array($Order->product_ids) ? $Order->product_ids : [];
+        $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
+        $requestedMap = is_array($Order->product_quantities) ? $Order->product_quantities : [];
+
+        $availableByProductId = ProductItem::query()
+            ->where('is_active', 1)
+            ->where('status', 'In Stock')
+            ->whereIn('product_id', $productIds)
+            ->selectRaw('product_id, COUNT(*) as cnt')
+            ->groupBy('product_id')
+            ->pluck('cnt', 'product_id')
+            ->toArray();
+
+        $rows = [];
+        $i = 1;
+        foreach ($productIds as $productId) {
+            $productId = (int) $productId;
+            $product = $products->get($productId);
+            if (!$product) {
+                continue;
+            }
+
+            $requestedQty = (int) ($requestedMap[$productId] ?? 0);
+            $availableQty = (int) ($availableByProductId[$productId] ?? 0);
+            $remarks = $availableQty === 0 ? 'Waiting for new shipment' : '';
+
+            $rows[] = [
+                'no' => $i++,
+                'product_name' => $product->name,
+                'requested_qty' => $requestedQty,
+                'available_qty' => $availableQty,
+                'remarks' => $remarks,
+            ];
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('dashboard.order_request', [
+            'Order' => $Order,
+            'requesterName' => $requester?->name,
+            'rows' => $rows,
+        ]);
+
+        $safeOrderNumber = $Order->order_number ?: ('order_' . $Order->id);
+        return $pdf->download('order_request_' . $safeOrderNumber . '.pdf');
     }
 
     private function calculateOrderItemPricing($orderItem, $company)

@@ -49,6 +49,7 @@ Route::post('/order/create', [DashboardController::class, 'StoreOrderDirect'])->
 // order items
 Route::get('/order-items', [DashboardController::class, 'OrderItems'])->name('dashboard.order_items');
 Route::get('/order/{Order}', [DashboardController::class, 'Order'])->name('dashboard.order');
+Route::get('/order/{Order}/order-request', [DashboardController::class, 'OrderRequest'])->name('dashboard.order_request');
 Route::get('/order/{Order}/delivery-note', [DashboardController::class, 'DeliveryNote'])->name('dashboard.delivery_note');
 Route::get('/order/{Order}/delete', [DashboardController::class, 'DeleteOrder'])->name('dashboard.delete_order');
 Route::post('/order/{Order}/update', [DashboardController::class, 'UpdateOrder'])->name('dashboard.update_order');
