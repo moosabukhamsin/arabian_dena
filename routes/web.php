@@ -51,6 +51,7 @@ Route::get('/order-items', [DashboardController::class, 'OrderItems'])->name('da
 Route::get('/order/{Order}', [DashboardController::class, 'Order'])->name('dashboard.order');
 Route::get('/order/{Order}/order-request', [DashboardController::class, 'OrderRequest'])->name('dashboard.order_request');
 Route::get('/order/{Order}/delivery-note', [DashboardController::class, 'DeliveryNote'])->name('dashboard.delivery_note');
+Route::get('/order/{Order}/time-sheet-pdf', [DashboardController::class, 'TimeSheetPdf'])->name('dashboard.time_sheet_pdf');
 Route::get('/order/{Order}/delete', [DashboardController::class, 'DeleteOrder'])->name('dashboard.delete_order');
 Route::post('/order/{Order}/update', [DashboardController::class, 'UpdateOrder'])->name('dashboard.update_order');
 Route::post('/order/{Order}/create_order_item', [DashboardController::class, 'StoreOrderItem'])->name('dashboard.store_order_item');

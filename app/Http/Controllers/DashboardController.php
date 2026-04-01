@@ -22,6 +22,66 @@ use Illuminate\Notifications\DatabaseNotification;
 
 class DashboardController extends Controller
 {
+    private function buildTimeSheetRowsForOrder(Order $Order): array
+    {
+        // Calculate pricing for each order item (same logic as Order page)
+        $Order->load(['OrderItems.productItem.product', 'Company']);
+
+        foreach ($Order->OrderItems as $orderItem) {
+            $pricingInfo = $this->calculateOrderItemPricing($orderItem, $Order->Company);
+            $orderItem->unit_price = $pricingInfo['unit_price'];
+            $orderItem->duration_days = $pricingInfo['duration_days'];
+            $orderItem->total_price = $pricingInfo['total_price'];
+        }
+
+        $backloadItems = BackloadItem::query()
+            ->whereIn('order_item_id', $Order->OrderItems->pluck('id')->toArray())
+            ->with('Backload')
+            ->get();
+
+        $backloadDateByOrderItemId = [];
+        $backloadIdByOrderItemId = [];
+        foreach ($backloadItems as $bi) {
+            if ($bi->order_item_id) {
+                $oid = (int) $bi->order_item_id;
+                $backloadDateByOrderItemId[$oid] = $bi->Backload?->date;
+                $backloadIdByOrderItemId[$oid] = $bi->backload_id ?? $bi->Backload?->id;
+            }
+        }
+
+        $timesheetRows = [];
+        $i = 1;
+        foreach ($Order->OrderItems as $orderItem) {
+            $orderItemId = (int) $orderItem->id;
+            $productName = $orderItem->productItem?->product?->name ?? '';
+            $series = $orderItem->productItem?->series_number ?? '';
+            $backloadDate = $backloadDateByOrderItemId[$orderItemId] ?? null;
+            $backloadId = $backloadIdByOrderItemId[$orderItemId] ?? null;
+
+            $timesheetRows[] = [
+                'file_no' => $Order->order_number ?? '',
+                'site' => $Order->site_code ?? '',
+                'sno' => $i++,
+                'description' => $productName,
+                'tracking_number' => $series,
+                'invoice_number' => '',
+                'po_reference' => $Order->po_reference ? basename($Order->po_reference) : '',
+                'delivery_note' => 'Order: ' . $Order->id,
+                'delivery_date' => $Order->delivery_date ?: ($Order->created_at?->format('Y-m-d') ?? ''),
+                'delivery_time' => '',
+                'backload_note' => $backloadId !== null ? 'Backload: ' . $backloadId : '',
+                'backload_date' => $backloadDate ?? '',
+                'time_blkd' => '',
+                'rental_status' => $backloadDate ? 'RETURNED' : 'UNDER RENTAL',
+                'rental_period' => ($orderItem->duration_days ?? ''),
+                'unit_rental_cost' => ($orderItem->unit_price ?? ''),
+                'total_rental_cost' => ($orderItem->total_price ?? ''),
+            ];
+        }
+
+        return $timesheetRows;
+    }
+
     private function companyNameInitials(string $companyName): string
     {
         $words = preg_split('/[^A-Za-z0-9]+/', trim($companyName), -1, PREG_SPLIT_NO_EMPTY);
@@ -503,17 +563,31 @@ class DashboardController extends Controller
             ->with('product') // Eager load product relationship for better performance
             ->get();
 
-        // Calculate pricing for each order item
-        $Order->load(['OrderItems.productItem.product', 'Company']);
+        $timesheetRows = $this->buildTimeSheetRowsForOrder($Order);
 
-        foreach ($Order->OrderItems as $orderItem) {
-            $pricingInfo = $this->calculateOrderItemPricing($orderItem, $Order->Company);
-            $orderItem->unit_price = $pricingInfo['unit_price'];
-            $orderItem->duration_days = $pricingInfo['duration_days'];
-            $orderItem->total_price = $pricingInfo['total_price'];
-        }
+        return view('dashboard.order', [
+            'Order' => $Order,
+            'ProductItems' => $ProductItems,
+            'timesheetRows' => $timesheetRows,
+        ]);
+    }
 
-        return view('dashboard.order', ['Order' => $Order, 'ProductItems' => $ProductItems]);
+    public function TimeSheetPdf(Order $Order)
+    {
+        $Order->load(['Company']);
+        $timesheetRows = $this->buildTimeSheetRowsForOrder($Order);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('dashboard.time_sheet_pdf', [
+            'Order' => $Order,
+            'timesheetRows' => $timesheetRows,
+            'invoiceNumber' => '',
+            'vendor' => '',
+            'todayDate' => now()->format('d F Y'),
+            'clientName' => $Order->Company?->name ?? '',
+        ])->setPaper('a4', 'landscape');
+
+        $safeOrderNumber = $Order->order_number ?: ('order_' . $Order->id);
+        return $pdf->download('time_sheet_' . $safeOrderNumber . '.pdf');
     }
 
     public function DeliveryNote(Order $Order)

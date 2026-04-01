@@ -34,6 +34,7 @@
                                                 <th class="border-bottom-0">Name</th>
                                                 <th class="border-bottom-0">Email</th>
                                                 <th class="border-bottom-0">Mobile Number</th>
+                                                <th class="border-bottom-0">Address</th>
                                                 <th class="border-bottom-0">Pricing Type</th>
                                                 <th class="border-bottom-0">Actions</th>
                                             </tr>
@@ -45,6 +46,7 @@
                                                     <td>{{ $company->name }}</td>
                                                     <td>{{ $company->email }}</td>
                                                     <td>{{ $company->mobile_number }}</td>
+                                                    <td>{{ $company->address }}</td>
                                                     <td>
                                                         <span class="badge {{ $company->pricing_type === 'daily_monthly' ? 'bg-info' : 'bg-success' }}">
                                                             {{ $company->pricing_type === 'daily_monthly' ? 'Daily & Monthly' : 'Daily, Weekly & Monthly' }}
@@ -106,6 +108,10 @@
                             <input type="text" name="mobile_number" class="form-control">
                         </div>
                         <div class="form-group">
+                            <label class="form-label">Address</label>
+                            <textarea name="address" class="form-control" rows="2" placeholder="Address"></textarea>
+                        </div>
+                        <div class="form-group">
                             <label class="form-label">Pricing Type</label>
                             <select name="pricing_type" class="form-control" required>
                                 <option value="daily_monthly">Daily & Monthly Only</option>
@@ -152,6 +158,10 @@
                         <div class="form-group">
                             <label class="form-label">Mobile Number</label>
                             <input type="text" name="mobile_number" class="form-control" value="{{ $company->mobile_number }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Address</label>
+                            <textarea name="address" class="form-control" rows="2" placeholder="Address">{{ $company->address }}</textarea>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Pricing Type</label>
