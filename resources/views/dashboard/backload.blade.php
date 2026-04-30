@@ -9,6 +9,9 @@
                 <div class="page-header">
                     <h1 class="page-title">Backload Items</h1>
                     <div class="page-options">
+                        <a href="{{ url()->previous() ?: route('dashboard.backloads') }}" class="btn btn-primary me-2">
+                            <i class="fe fe-arrow-left"></i> Back
+                        </a>
                         <a href="{{ route('dashboard.backload_note', $Backload->id) }}" class="btn btn-warning">
                             <i class="fe fe-download"></i> Backload Note
                         </a>
@@ -34,9 +37,6 @@
                                                 <th class="border-bottom-0">Series Number</th>
                                                 <th class="border-bottom-0">Start Date</th>
                                                 <th class="border-bottom-0">End Date</th>
-                                                <th class="border-bottom-0">Daily Price</th>
-                                                <th class="border-bottom-0">Weekly Price</th>
-                                                <th class="border-bottom-0">Monthly Price</th>
                                                 <th class="border-bottom-0">Actions</th>
                                             </tr>
                                         </thead>
@@ -48,9 +48,6 @@
                                                     <td>{{ $OrderItem->ProductItem->series_number }}</td>
                                                     <td>{{ $OrderItem->Order->delivery_date }}</td>
                                                     <td>Active</td>
-                                                    <td>{{ $OrderItem->daily_price }}</td>
-                                                    <td>{{ $OrderItem->weekly_price }}</td>
-                                                    <td>{{ $OrderItem->monthly_price }}</td>
                                                     <td >
 
 
@@ -91,9 +88,6 @@
                                                 <th class="border-bottom-0">Series Number</th>
                                                 <th class="border-bottom-0">Start Date</th>
                                                 <th class="border-bottom-0">End Date</th>
-                                                <th class="border-bottom-0">Daily Price</th>
-                                                <th class="border-bottom-0">Weekly Price</th>
-                                                <th class="border-bottom-0">Monthly Price</th>
                                                 <th class="border-bottom-0">Actions</th>
                                             </tr>
                                         </thead>
@@ -105,9 +99,6 @@
                                                     <td>{{ $BackloadItem->OrderItem->ProductItem->series_number }}</td>
                                                     <td>{{ $BackloadItem->OrderItem->Order->delivery_date }}</td>
                                                     <td>{{ $BackloadItem->Backload->date }}</td>
-                                                    <td>{{ $BackloadItem->OrderItem->daily_price }}</td>
-                                                    <td>{{ $BackloadItem->OrderItem->weekly_price }}</td>
-                                                    <td>{{ $BackloadItem->OrderItem->monthly_price }}</td>
                                                     <td>
 
 

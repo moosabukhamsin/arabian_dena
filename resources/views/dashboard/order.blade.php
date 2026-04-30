@@ -9,6 +9,9 @@
                 <div class="page-header">
                     <h1 class="page-title">Order #{{ $Order->id }} - {{ $Order->Company->name }}</h1>
                     <div class="page-options">
+                        <a href="{{ url()->previous() ?: route('dashboard.orders') }}" class="btn btn-primary me-2">
+                            <i class="fe fe-arrow-left"></i> Back
+                        </a>
                         <a href="{{ route('dashboard.order_request', $Order->id) }}" class="btn btn-warning me-2">
                             <i class="fe fe-download"></i> Order Request
                         </a>
@@ -104,9 +107,8 @@
                                                 <th class="border-bottom-0">Series Number</th>
                                                 <th class="border-bottom-0">Start Date</th>
                                                 <th class="border-bottom-0">End Date</th>
-                                                <th class="border-bottom-0">Unit Price</th>
                                                 <th class="border-bottom-0">Duration</th>
-                                                <th class="border-bottom-0">Total</th>
+                                                <th class="border-bottom-0">Remarks</th>
                                                 <th class="border-bottom-0">Actions</th>
                                             </tr>
                                         </thead>
@@ -127,9 +129,8 @@
                                                             Active
                                                         @endif
                                                     </td>
-                                                    <td>{{ number_format($OrderItem->unit_price ?? 0, 2) }} SAR</td>
                                                     <td>{{ $OrderItem->duration_days ?? 0 }} days</td>
-                                                    <td>{{ number_format($OrderItem->total_price ?? 0, 2) }} SAR</td>
+                                                    <td>{{ $OrderItem->remarks ?? '' }}</td>
                                                     <td class=" table_input">
                                                         {{-- @if (!$OrderItem->end_date )
                                                             <form action="{{ route('dashboard.update_order_item',$OrderItem) }}" method="POST" >
@@ -144,6 +145,9 @@
                                                             </form>
                                                         @endif --}}
 
+                                                        <button type="button" class="btn btn-sm btn-primary me-1" data-bs-toggle="modal" data-bs-target="#editOrderItemRemarksModal{{ $OrderItem->id }}">
+                                                            <span class="fe fe-edit"></span>
+                                                        </button>
                                                         <a href="{{ route('dashboard.delete_order_item', $OrderItem->id) }}" >
                                                             <button id="bDel" type="button" class="btn  btn-sm btn-danger">
                                                                 <span class="fe fe-trash-2"> </span>
@@ -159,6 +163,35 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Edit Order Item Remarks Modals -->
+                @foreach ($Order->OrderItems as $OrderItem)
+                    <div class="modal fade" id="editOrderItemRemarksModal{{ $OrderItem->id }}" tabindex="-1" role="dialog" aria-hidden="true">
+                        <div class="modal-dialog modal-lg" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Edit Order Item Remarks #{{ $OrderItem->id }}</h5>
+                                    <button class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">×</span>
+                                    </button>
+                                </div>
+                                <form action="{{ route('dashboard.update_order_item', $OrderItem->id) }}" method="POST">
+                                    @csrf
+                                    <div class="modal-body">
+                                        <div class="form-group">
+                                            <label class="form-label">Remarks</label>
+                                            <input type="text" name="remarks" class="form-control" value="{{ $OrderItem->remarks }}">
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        <button type="submit" class="btn btn-primary">Save</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
                 <!-- End Row -->
                 <!-- ROW-2 END -->
             </div>
@@ -170,7 +203,6 @@
         <table id="timesheet-datatable" class="table table-bordered">
             <thead>
                 <tr>
-                    <th>File #</th>
                     <th>Site</th>
                     <th>S.No.</th>
                     <th>Description</th>
@@ -194,7 +226,6 @@
                 @foreach (($timesheetRows ?? []) as $row)
                     @php $totalRental += (float) ($row['total_rental_cost'] !== '' ? $row['total_rental_cost'] : 0); @endphp
                     <tr>
-                        <td>{{ $row['file_no'] }}</td>
                         <td>{{ $row['site'] }}</td>
                         <td>{{ $row['sno'] }}</td>
                         <td>{{ $row['description'] }}</td>
@@ -214,21 +245,9 @@
                     </tr>
                 @endforeach
                 <tr>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
+                    @for ($c = 0; $c < 14; $c++)
+                        <td></td>
+                    @endfor
                     <td style="text-align: right; font-weight: bold;">Total Rental</td>
                     <td style="font-weight: bold;">{{ 'SAR ' . $totalRental }}</td>
                 </tr>

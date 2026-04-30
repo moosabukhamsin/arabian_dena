@@ -13,10 +13,12 @@ use App\Models\ProductItem;
 use App\Models\OrderItem;
 use App\Models\Backload;
 use App\Models\BackloadItem;
+use App\Models\ProductItemCertificate;
 use App\Models\CompanyPriceList;
 use App\Services\ProductItemStatusService;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Notifications\DatabaseNotification;
 
 
@@ -82,6 +84,65 @@ class DashboardController extends Controller
         return $timesheetRows;
     }
 
+    private function buildTimeSheetRowsForOrderItems($orderItems): array
+    {
+        $orderItemIds = $orderItems->pluck('id')->map(fn ($v) => (int) $v)->all();
+
+        $backloadItems = BackloadItem::query()
+            ->whereIn('order_item_id', $orderItemIds)
+            ->with('Backload')
+            ->get();
+
+        $backloadDateByOrderItemId = [];
+        $backloadIdByOrderItemId = [];
+        foreach ($backloadItems as $bi) {
+            if ($bi->order_item_id) {
+                $oid = (int) $bi->order_item_id;
+                $backloadDateByOrderItemId[$oid] = $bi->Backload?->date;
+                $backloadIdByOrderItemId[$oid] = $bi->backload_id ?? $bi->Backload?->id;
+            }
+        }
+
+        $rows = [];
+        $i = 1;
+        foreach ($orderItems as $orderItem) {
+            $orderItemId = (int) $orderItem->id;
+            $order = $orderItem->Order;
+            $companyName = $order?->Company?->name ?? '';
+
+            $productName = $orderItem->productItem?->product?->name ?? '';
+            $series = $orderItem->productItem?->series_number ?? '';
+
+            $backloadDate = $backloadDateByOrderItemId[$orderItemId] ?? null;
+            $backloadId = $backloadIdByOrderItemId[$orderItemId] ?? null;
+
+            $rows[] = [
+                'file_no' => $order?->order_number ?? '',
+                'order_number' => $order?->order_number ?? '',
+                'company_name' => $companyName,
+                'site' => $order?->site_code ?? '',
+                'sno' => $i++,
+                'description' => $productName,
+                'remarks' => $orderItem->remarks ?? '',
+                'tracking_number' => $series,
+                'invoice_number' => '',
+                'po_reference' => $order?->po_reference ? basename($order->po_reference) : '',
+                'delivery_note' => $order ? ('Order: ' . $order->id) : '',
+                'delivery_date' => $order?->delivery_date ?: ($order?->created_at?->format('Y-m-d') ?? ''),
+                'delivery_time' => '',
+                'backload_note' => $backloadId !== null ? 'Backload: ' . $backloadId : '',
+                'backload_date' => $backloadDate ?? '',
+                'time_blkd' => '',
+                'rental_status' => $backloadDate ? 'RETURNED' : 'UNDER RENTAL',
+                'rental_period' => ($orderItem->duration_days ?? ''),
+                'unit_rental_cost' => ($orderItem->unit_price ?? ''),
+                'total_rental_cost' => ($orderItem->total_price ?? ''),
+            ];
+        }
+
+        return $rows;
+    }
+
     private function companyNameInitials(string $companyName): string
     {
         $words = preg_split('/[^A-Za-z0-9]+/', trim($companyName), -1, PREG_SPLIT_NO_EMPTY);
@@ -107,6 +168,34 @@ class DashboardController extends Controller
             ->where('order_number', 'like', $base . '%')
             ->orderByDesc('order_number')
             ->value('order_number');
+
+        $lastSeq = 0;
+        if (is_string($lastForScope) && str_starts_with($lastForScope, $base)) {
+            $suffix = substr($lastForScope, strlen($base));
+            if (ctype_digit($suffix)) {
+                $lastSeq = (int) $suffix;
+            }
+        }
+
+        $nextSeq = $lastSeq + 1;
+        $seq3 = str_pad((string) $nextSeq, 3, '0', STR_PAD_LEFT);
+
+        return $base . $seq3;
+    }
+
+    private function generateBackloadNumberForCompany(Company $company): string
+    {
+        $prefix = $this->companyNameInitials($company->name ?? '');
+        $year = now()->format('Y');
+        $month = now()->format('m');
+
+        $rmrl = 'BLKD';
+        $base = "{$rmrl}-{$year}-{$prefix}-{$month}-";
+
+        $lastForScope = Backload::query()
+            ->where('backload_number', 'like', $base . '%')
+            ->orderByDesc('backload_number')
+            ->value('backload_number');
 
         $lastSeq = 0;
         if (is_string($lastForScope) && str_starts_with($lastForScope, $base)) {
@@ -190,7 +279,11 @@ class DashboardController extends Controller
             $filename = Storage::disk('public')->put('/', $file);
             $data['image'] = $filename;
         }
-        Category::create($data);
+        $category = Category::create($data);
+        if (!$category->category_code) {
+            $category->category_code = (string) $category->id;
+            $category->save();
+        }
         return redirect()->back();
     }
     public function UpdateCategory(Request $request, Category $Category)
@@ -305,7 +398,11 @@ class DashboardController extends Controller
             $filename = Storage::disk('public')->put('/', $file);
             $data['image'] = $filename;
         }
-        Product::create($data);
+        $product = Product::create($data);
+        if (!$product->product_code) {
+            $product->product_code = (string) $product->id;
+            $product->save();
+        }
         return redirect()->back();
     }
     public function Product(Product $Product)
@@ -334,15 +431,32 @@ class DashboardController extends Controller
 
     public function ProductItem(ProductItem $ProductItem)
     {
+        $ProductItem->load(['Product', 'Certificates' => function ($q) {
+            $q->orderByDesc('created_at');
+        }]);
         return view('dashboard.product_item', ['ProductItem' => $ProductItem]);
     }
     public function DownloadProductItemCertificate(ProductItem $ProductItem)
     {
-        if (!$ProductItem->certificate || !Storage::disk('public')->exists($ProductItem->certificate)) {
+        // Backwards-compatible: download "current" certificate (latest version if available)
+        $current = $ProductItem->Certificates()->orderByDesc('created_at')->first();
+        $path = $current?->certificate ?: $ProductItem->certificate;
+
+        if (!$path || !Storage::disk('public')->exists($path)) {
             return redirect()->back()->withErrors(['certificate' => 'Certificate file not found.']);
         }
 
-        return Storage::disk('public')->download($ProductItem->certificate);
+        return Storage::disk('public')->download($path);
+    }
+
+    public function DownloadProductItemCertificateVersion(ProductItemCertificate $ProductItemCertificate)
+    {
+        $path = $ProductItemCertificate->certificate;
+        if (!$path || !Storage::disk('public')->exists($path)) {
+            return redirect()->back()->withErrors(['certificate' => 'Certificate file not found.']);
+        }
+
+        return Storage::disk('public')->download($path);
     }
     public function MarkNotificationAsRead(DatabaseNotification $notification)
     {
@@ -366,19 +480,30 @@ class DashboardController extends Controller
             'series_number' => ['required', 'string', 'max:255', Rule::unique('product_items', 'series_number')],
             'product_id' => ['required', 'integer', Rule::exists('products', 'id')],
             'inspection_date' => ['required', 'date'],
-            'certificate' => ['required', 'file'],
+            'certificate' => ['nullable', 'file'],
+            'product_item_code' => ['nullable', 'string', 'max:255'],
         ])->validateWithBag('createProductItem');
 
         $data = $request->except(['certificate']);
         $data['is_active'] = true;
         $data['product_id'] = $Product->id;
         $data['status'] = 'In Stock'; // Set default status to In Stock
+        $productItem = ProductItem::create($data);
         if ($request->hasFile('certificate')) {
             $file = $request->file('certificate');
             $filename = Storage::disk('public')->put('/', $file);
-            $data['certificate'] = $filename;
+            ProductItemCertificate::create([
+                'product_item_id' => $productItem->id,
+                'certificate' => $filename,
+            ]);
+            // keep legacy column in sync with "current" certificate
+            $productItem->certificate = $filename;
+            $productItem->save();
         }
-        ProductItem::create($data);
+        if (!$productItem->product_item_code) {
+            $productItem->product_item_code = (string) $productItem->id;
+            $productItem->save();
+        }
         return redirect()->back();
     }
     public function DeleteProductItem(ProductItem $ProductItem)
@@ -398,16 +523,22 @@ class DashboardController extends Controller
             'editing_product_item_id' => ['nullable', 'integer'],
             'inspection_date' => ['nullable', 'date'],
             'certificate' => ['nullable', 'file'],
+            'product_item_code' => ['nullable', 'string', 'max:255'],
         ])->validateWithBag('updateProductItem');
 
         $data = $request->except(['editing_product_item_id', 'certificate']);
+        $ProductItem->update($data);
+
         if ($request->hasFile('certificate')) {
             $file = $request->file('certificate');
             $filename = Storage::disk('public')->put('/', $file);
-            $data['certificate'] = $filename;
+            ProductItemCertificate::create([
+                'product_item_id' => $ProductItem->id,
+                'certificate' => $filename,
+            ]);
+            // keep legacy column in sync with "current" certificate
+            $ProductItem->update(['certificate' => $filename]);
         }
-
-        $ProductItem->update($data);
         return redirect()->back();
     }
     // orders
@@ -741,11 +872,17 @@ class DashboardController extends Controller
             ];
         }
 
+        $siteText = implode(', ', array_values(array_filter(array_unique(array_map(
+            fn ($r) => (string) ($r['product_name'] ?? ''),
+            $rows
+        )))));
+
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('dashboard.backload_note', [
             'Backload' => $Backload,
             'Order' => $order,
             'clientCode' => $clientCode,
             'rows' => $rows,
+            'siteText' => $siteText,
         ]);
 
         return $pdf->download('backload_note_' . $Backload->id . '.pdf');
@@ -826,18 +963,6 @@ class DashboardController extends Controller
     {
         $orders = Order::where('is_active', 1)->with(['Company', 'OrderItems.productItem.product'])->get();
 
-        // Calculate total amount for each order
-        foreach ($orders as $order) {
-            $totalAmount = 0;
-
-            foreach ($order->OrderItems as $orderItem) {
-                $pricingInfo = $this->calculateOrderItemPricing($orderItem, $order->Company);
-                $totalAmount += $pricingInfo['total_price'];
-            }
-
-            $order->total_amount = $totalAmount;
-        }
-
         $companies = Company::where('is_active', 1)->get();
         $employees = CompanyEmployee::where('is_active', 1)->get();
         return view('dashboard.orders', ['orders' => $orders, 'companies' => $companies, 'employees' => $employees]);
@@ -857,7 +982,36 @@ class DashboardController extends Controller
             $orderItem->total_price = $pricingInfo['total_price'];
         }
 
-        return view('dashboard.order_items', compact('orderItems', 'orders', 'productItems'));
+        $timesheetAllRows = $this->buildTimeSheetRowsForOrderItems($orderItems);
+
+        return view('dashboard.order_items', compact('orderItems', 'orders', 'productItems', 'timesheetAllRows'));
+    }
+
+    public function TimeSheetAllPdf()
+    {
+        $orderItems = OrderItem::with(['order.company', 'productItem.product'])->get();
+
+        foreach ($orderItems as $orderItem) {
+            $company = $orderItem->order?->company;
+            if ($company) {
+                $pricingInfo = $this->calculateOrderItemPricing($orderItem, $company);
+                $orderItem->unit_price = $pricingInfo['unit_price'];
+                $orderItem->duration_days = $pricingInfo['duration_days'];
+                $orderItem->total_price = $pricingInfo['total_price'];
+            }
+        }
+
+        $timesheetRows = $this->buildTimeSheetRowsForOrderItems($orderItems);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('dashboard.time_sheet_all_pdf', [
+            'timesheetRows' => $timesheetRows,
+            'invoiceNumber' => '',
+            'vendor' => '',
+            'todayDate' => now()->format('d F Y'),
+            'clientName' => '',
+        ])->setPaper('a4', 'landscape');
+
+        return $pdf->download('time_sheet_all_order_items.pdf');
     }
 
     private function calculateOrderItemRentalStatus($orderItem)
@@ -963,15 +1117,51 @@ class DashboardController extends Controller
     }
     public function StoreOrderItem(Request $request, Order $Order)
     {
-        $data = $request->all();
-        $data['order_id'] = $Order->id;
-        $orderItem = OrderItem::create($data);
-        $orderItem->productItem?->update(['inactive_90d_notified_at' => null]);
-        
-        // Update ProductItem status
-        $statusService = new ProductItemStatusService();
-        $statusService->updateRentalStatus($orderItem->productItem);
-        
+        $validated = Validator::make($request->all(), [
+            'product_item_id' => ['required', 'integer', Rule::exists('product_items', 'id')],
+        ])->validate();
+
+        $productItemId = (int) $validated['product_item_id'];
+
+        try {
+            DB::transaction(function () use ($Order, $productItemId) {
+                $productItem = ProductItem::query()
+                    ->where('id', $productItemId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$productItem || !$productItem->is_active) {
+                    throw new \RuntimeException('This product item is not available.');
+                }
+
+                if (($productItem->status ?? '') !== 'In Stock') {
+                    throw new \RuntimeException('This product item is no longer in stock.');
+                }
+
+                $alreadyInThisOrder = OrderItem::query()
+                    ->where('order_id', $Order->id)
+                    ->where('product_item_id', $productItemId)
+                    ->exists();
+
+                if ($alreadyInThisOrder) {
+                    throw new \RuntimeException('This product item was already added to this order.');
+                }
+
+                $orderItem = OrderItem::create([
+                    'order_id' => $Order->id,
+                    'product_item_id' => $productItemId,
+                ]);
+
+                $orderItem->productItem?->update(['inactive_90d_notified_at' => null]);
+
+                // Update ProductItem status (will set it to Under Rental if not returned)
+                $statusService = new ProductItemStatusService();
+                $statusService->updateRentalStatus($productItem);
+            });
+        } catch (\RuntimeException $e) {
+            return redirect()->back()->withErrors(['product_item_id' => $e->getMessage()]);
+        }
+
         return redirect()->back();
     }
     public function DeleteOrderItem(OrderItem $OrderItem)
@@ -993,25 +1183,27 @@ class DashboardController extends Controller
     // backloads
     public function StoreBackload(Request $request, Company $Company)
     {
-        $data = $request->except(['back_load_note']);
+        $data = $request->all();
         $data['is_active'] = true;
         $data['company_id'] = $Company->id;
-        if ($request->hasFile('back_load_note')) {
-            $file = $request->file('back_load_note');
-            $filename = Storage::disk('public')->put('/', $file);
-            $data['back_load_note'] = $filename;
+
+        for ($i = 0; $i < 5; $i++) {
+            $data['backload_number'] = $this->generateBackloadNumberForCompany($Company);
+            try {
+                Backload::create($data);
+                return redirect()->back();
+            } catch (\Illuminate\Database\QueryException $e) {
+                // retry on unique collision
+            }
         }
+
         Backload::create($data);
         return redirect()->back();
     }
     public function UpdateBackload(Request $request, Backload $Backload)
     {
-        $data = $request->except(['back_load_note']);
-        if ($request->hasFile('back_load_note')) {
-            $file = $request->file('back_load_note');
-            $filename = Storage::disk('public')->put('/', $file);
-            $data['back_load_note'] = $filename;
-        }
+        $data = $request->all();
+        unset($data['backload_number']);
         $Backload->update($data);
         return redirect()->back();
     }
@@ -1035,14 +1227,59 @@ class DashboardController extends Controller
     }
     public function StoreBackloadItem(Request $request, Backload $Backload)
     {
-        $data = $request->all();
-        $data['backload_id'] = $Backload->id;
-        $backloadItem = BackloadItem::create($data);
-        $backloadItem->orderItem->productItem->update(['inactive_90d_notified_at' => null]);
-        
-        // Immediately set status to Backloaded when BackloadItem is created
-        $backloadItem->orderItem->productItem->update(['status' => 'Backloaded']);
-        
+        $validated = Validator::make($request->all(), [
+            'order_item_id' => ['required', 'integer', Rule::exists('order_items', 'id')],
+        ])->validate();
+
+        $orderItemId = (int) $validated['order_item_id'];
+
+        try {
+            DB::transaction(function () use ($Backload, $orderItemId) {
+                $orderItem = OrderItem::query()
+                    ->where('id', $orderItemId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$orderItem) {
+                    throw new \RuntimeException('This order item is not available.');
+                }
+
+                // Prevent duplicate backload items for the same order item (double-click protection)
+                $alreadyBackloaded = BackloadItem::query()
+                    ->where('order_item_id', $orderItemId)
+                    ->exists();
+
+                if ($alreadyBackloaded) {
+                    throw new \RuntimeException('This product item was already backloaded.');
+                }
+
+                $productItem = ProductItem::query()
+                    ->where('id', (int) $orderItem->product_item_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$productItem || !$productItem->is_active) {
+                    throw new \RuntimeException('This product item is not available.');
+                }
+
+                if (($productItem->status ?? '') === 'Backloaded') {
+                    throw new \RuntimeException('This product item is already backloaded.');
+                }
+
+                $backloadItem = BackloadItem::create([
+                    'backload_id' => $Backload->id,
+                    'order_item_id' => $orderItemId,
+                ]);
+
+                $backloadItem->orderItem->productItem->update(['inactive_90d_notified_at' => null]);
+
+                // Immediately set status to Backloaded when BackloadItem is created
+                $productItem->update(['status' => 'Backloaded']);
+            });
+        } catch (\RuntimeException $e) {
+            return redirect()->back()->withErrors(['order_item_id' => $e->getMessage()]);
+        }
+
         return redirect()->back();
     }
     public function DeleteBackloadItem(BackloadItem $BackloadItem)

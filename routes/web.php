@@ -29,6 +29,7 @@ Route::get('product-items', [DashboardController::class, 'ProductItems'])->name(
 Route::post('product/{Product}/create_product_item', [DashboardController::class, 'StoreProductItem'])->name('dashboard.store_product_item');
 Route::get('product_item/{ProductItem}', [DashboardController::class, 'ProductItem'])->name('dashboard.product_item');
 Route::get('product_item/{ProductItem}/certificate/download', [DashboardController::class, 'DownloadProductItemCertificate'])->name('dashboard.download_product_item_certificate');
+Route::get('product_item_certificate/{ProductItemCertificate}/download', [DashboardController::class, 'DownloadProductItemCertificateVersion'])->name('dashboard.download_product_item_certificate_version');
 Route::get('product_item/{ProductItem}/delete', [DashboardController::class, 'DeleteProductItem'])->name('dashboard.delete_product_item');
 Route::post('product_item/{ProductItem}/update', [DashboardController::class, 'UpdateProductItem'])->name('dashboard.update_product_item');
 Route::post('notifications/{notification}/read', [DashboardController::class, 'MarkNotificationAsRead'])->name('dashboard.notifications.read');
@@ -48,6 +49,7 @@ Route::get('/orders', [DashboardController::class, 'Orders'])->name('dashboard.o
 Route::post('/order/create', [DashboardController::class, 'StoreOrderDirect'])->name('dashboard.store_order_direct');
 // order items
 Route::get('/order-items', [DashboardController::class, 'OrderItems'])->name('dashboard.order_items');
+Route::get('/order-items/time-sheet-pdf', [DashboardController::class, 'TimeSheetAllPdf'])->name('dashboard.time_sheet_all_pdf');
 Route::get('/order/{Order}', [DashboardController::class, 'Order'])->name('dashboard.order');
 Route::get('/order/{Order}/order-request', [DashboardController::class, 'OrderRequest'])->name('dashboard.order_request');
 Route::get('/order/{Order}/delivery-note', [DashboardController::class, 'DeliveryNote'])->name('dashboard.delivery_note');

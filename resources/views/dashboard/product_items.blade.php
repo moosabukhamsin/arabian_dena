@@ -37,10 +37,11 @@
                                     <table class="table table-bordered text-nowrap key-buttons border-bottom">
                                         <thead>
                                             <tr>
-                                                <th class="border-bottom-0">ID</th>
+                                                <th class="border-bottom-0">Product Item ID</th>
                                                 <th class="border-bottom-0">Product</th>
                                                 <th class="border-bottom-0">Series Number</th>
                                                 <th class="border-bottom-0">Inspection Date</th>
+                                                <th class="border-bottom-0">Due Date</th>
                                                 <th class="border-bottom-0">Due Days</th>
                                                 <th class="border-bottom-0">Status</th>
                                                 <th class="border-bottom-0">Actions</th>
@@ -49,7 +50,7 @@
                                         <tbody>
                                             @forelse ($productItems as $productItem)
                                                 <tr>
-                                                    <td>{{ $productItem->id }}</td>
+                                                    <td data-order="{{ $productItem->product_item_code ?? $productItem->id }}">{{ $productItem->product_item_code ?? $productItem->id }}</td>
                                                     <td>
                                                         @if($productItem->product->image)
                                                             <img src="{{ $productItem->product->image_url }}" alt="Product Image" width="30" class="me-2">
@@ -60,6 +61,16 @@
                                                     </td>
                                                     <td>{{ $productItem->series_number }}</td>
                                                     <td>{{ $productItem->inspection_date ?? '-' }}</td>
+                                                    <td>
+                                                        @if($productItem->inspection_date)
+                                                            @php
+                                                                $dueDate = \Carbon\Carbon::parse($productItem->inspection_date)->addDays(365);
+                                                            @endphp
+                                                            {{ $dueDate->format('Y-m-d') }}
+                                                        @else
+                                                            -
+                                                        @endif
+                                                    </td>
                                                     <td>
                                                         @if($productItem->inspection_date)
                                                             @php
@@ -132,6 +143,10 @@
                                 @csrf
                                 <div class="modal-body">
                                     <div class="form-group">
+                                        <label class="form-label">Product Item ID</label>
+                                        <input type="text" name="product_item_code" class="form-control" placeholder="Leave empty to auto-use numeric ID" value="{{ old('product_item_code') }}">
+                                    </div>
+                                    <div class="form-group">
                                         <label class="form-label">Product</label>
                                         <select name="product_id" class="form-control @if($errors->createProductItem->has('product_id')) is-invalid @endif" required>
                                             <option value="">Select a product</option>
@@ -190,7 +205,7 @@
                     <div class="modal-dialog modal-lg" role="document">
                         <div class="modal-content">
                             <div class="modal-header">
-                                <h5 class="modal-title">Edit Product Item #{{ $productItem->id }}</h5>
+                                <h5 class="modal-title">Edit Product Item #{{ $productItem->product_item_code ?? $productItem->id }}</h5>
                                 <button class="btn-close" data-bs-dismiss="modal" aria-label="Close">
                                     <span aria-hidden="true">×</span>
                                 </button>
@@ -199,6 +214,10 @@
                                 @csrf
                                 <input type="hidden" name="editing_product_item_id" value="{{ $productItem->id }}">
                                 <div class="modal-body">
+                                    <div class="form-group">
+                                        <label class="form-label">Product Item ID</label>
+                                        <input type="text" name="product_item_code" class="form-control" value="{{ old('editing_product_item_id') == $productItem->id ? old('product_item_code') : ($productItem->product_item_code ?? $productItem->id) }}">
+                                    </div>
                                     <div class="form-group">
                                         <label class="form-label">Series Number</label>
                                         <input type="text" name="series_number" class="form-control @if(old('editing_product_item_id') == $productItem->id && $errors->updateProductItem->has('series_number')) is-invalid @endif" value="{{ old('editing_product_item_id') == $productItem->id ? old('series_number') : $productItem->series_number }}" required>

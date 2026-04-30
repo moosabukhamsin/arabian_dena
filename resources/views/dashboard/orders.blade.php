@@ -29,11 +29,10 @@
                                     <table id="file-datatable" class="table table-bordered text-nowrap key-buttons border-bottom">
                                         <thead>
                                             <tr>
-                                                <th class="border-bottom-0">ID</th>
+                                                <th class="border-bottom-0">Order Request</th>
                                                 <th class="border-bottom-0">Company Name</th>
                                                 <th class="border-bottom-0">Site Code</th>
                                                 <th class="border-bottom-0">Item Count</th>
-                                                <th class="border-bottom-0">Total</th>
                                                 <th class="border-bottom-0">Actions</th>
 
                                             </tr>
@@ -41,11 +40,10 @@
                                         <tbody>
                                             @foreach ($orders as $order)
                                                 <tr>
-                                                    <td>{{ $order->id }}</td>
+                                                    <td data-order="{{ $order->order_number ?? $order->id }}">{{ $order->order_number ?? ('Order: ' . $order->id) }}</td>
                                                     <td>{{ $order->Company->name }}</td>
                                                     <td>{{ $order->site_code }}</td>
                                                     <td>{{ $order->OrderItems->count() }}</td>
-                                                    <td>{{ number_format($order->total_amount ?? 0, 2) }} SAR</td>
                                                     <td>
                                                         <a href="{{ route('dashboard.order', $order->id) }}" >
                                                             <button id="bView" type="button" class="btn btn-sm btn-info me-1">

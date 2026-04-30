@@ -23,9 +23,10 @@
                                     <table id="file-datatable" class="table table-bordered text-nowrap key-buttons border-bottom">
                                         <thead>
                                             <tr>
-                                                <th class="border-bottom-0">ID</th>
+                                                <th class="border-bottom-0">Backload Number</th>
                                                 <th class="border-bottom-0">Company</th>
                                                 <th class="border-bottom-0">Date</th>
+                                                <th class="border-bottom-0">Address</th>
                                                 <th class="border-bottom-0">Item Count</th>
                                                 <th class="border-bottom-0">Actions</th>
                                             </tr>
@@ -33,9 +34,10 @@
                                         <tbody>
                                             @foreach ($backloads as $backload)
                                                 <tr>
-                                                    <td>{{ $backload->id }}</td>
+                                                    <td data-order="{{ $backload->backload_number ?? $backload->id }}">{{ $backload->backload_number ?? ('Backload: ' . $backload->id) }}</td>
                                                     <td>{{ $backload->Company->name }}</td>
                                                     <td>{{ $backload->date }}</td>
+                                                    <td>{{ $backload->address }}</td>
                                                     <td>{{ $backload->BackloadItems->count() }}</td>
                                                     <td>
                                                         <button class="btn btn-sm btn-primary me-1" data-bs-toggle="modal" data-bs-target="#editBackloadModal{{ $backload->id }}">
@@ -80,6 +82,10 @@
                     @csrf
                     <div class="modal-body">
                         <div class="form-group">
+                            <label class="form-label">Backload Number</label>
+                            <input type="text" class="form-control" value="{{ $backload->backload_number ?? ('Backload: ' . $backload->id) }}" disabled>
+                        </div>
+                        <div class="form-group">
                             <label class="form-label">Company</label>
                             <select name="company_id" class="form-control" required>
                                 @foreach (\App\Models\Company::where('is_active', 1)->get() as $company)
@@ -94,11 +100,8 @@
                             <input type="date" name="date" class="form-control" value="{{ $backload->date }}" required>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Back Load Note</label>
-                            <input type="file" name="back_load_note" class="form-control">
-                            @if($backload->back_load_note)
-                                <small class="text-muted">Current: <a href="{{ asset('storage/'.$backload->back_load_note) }}" target="_blank">View File</a></small>
-                            @endif
+                            <label class="form-label">Address</label>
+                            <input type="text" name="address" class="form-control" value="{{ $backload->address }}" placeholder="Enter address">
                         </div>
                         <div class="form-group">
                             <label class="form-label">Truck Number</label>

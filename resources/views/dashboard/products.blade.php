@@ -37,7 +37,7 @@
                                     <table id="file-datatable" class="table table-bordered text-nowrap key-buttons border-bottom">
                                         <thead>
                                             <tr>
-                                                <th class="border-bottom-0">ID</th>
+                                                <th class="border-bottom-0">Product ID</th>
                                                 <th class="border-bottom-0">Name</th>
                                                 <th class="border-bottom-0">Category</th>
                                                 <th class="border-bottom-0">Item Count</th>
@@ -48,7 +48,12 @@
                                         <tbody>
                                             @foreach ($products as $product)
                                                 <tr>
-                                                    <td>{{ $product->id }} - @if($product->image_url)<img src="{{ $product->image_url }}" alt="Product Image" width="25">@endif </td>
+                                                    <td data-order="{{ $product->product_code ?? $product->id }}">
+                                                        {{ $product->product_code ?? $product->id }}
+                                                        @if($product->image_url)
+                                                            <img src="{{ $product->image_url }}" alt="Product Image" width="25">
+                                                        @endif
+                                                    </td>
                                                     <td>{{ $product->name }}</td>
                                                     <td>{{ $product->category->name }}</td>
                                                     <td>{{ $product->ProductItems->where('is_active', true)->count() }}</td>
@@ -99,6 +104,10 @@
                 <form action="{{ route('dashboard.store_product') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="modal-body">
+                                <div class="form-group">
+                                    <label class="form-label">Product ID</label>
+                                    <input type="text" name="product_code" class="form-control" placeholder="Leave empty to auto-use numeric ID">
+                                </div>
                                 <div class="form-group">
                                     <label class="form-label">name</label>
                                     <input type="text" name="name" class="form-control"  >
@@ -157,6 +166,10 @@
                 <form action="{{ route('dashboard.update_product', $product->id) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="modal-body">
+                        <div class="form-group">
+                            <label class="form-label">Product ID</label>
+                            <input type="text" name="product_code" class="form-control" value="{{ $product->product_code ?? $product->id }}">
+                        </div>
                         <div class="form-group">
                             <label class="form-label">Name</label>
                             <input type="text" name="name" class="form-control" value="{{ $product->name }}" required>

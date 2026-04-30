@@ -191,7 +191,7 @@
                             <li class="slide">
                                 <a class="side-menu__item has-link" data-bs-toggle="slide" href="{{ route('dashboard.order_items') }}"><i
                                         class="side-menu__icon fe fe-shopping-bag"></i><span
-                                        class="side-menu__label">Order Items</span></a>
+                                        class="side-menu__label">Timesheets</span></a>
                             </li>
                             <li class="slide">
                                 <a class="side-menu__item has-link" data-bs-toggle="slide" href="{{ route('dashboard.backloads') }}"><i
@@ -325,6 +325,7 @@
     <script src="/assets/plugins/datatable/dataTables.responsive.min.js"></script>
     <script src="/assets/plugins/datatable/responsive.bootstrap5.min.js"></script>
     <script src="/assets/js/table-data.js"></script>
+    @stack('scripts')
 
 </body>
 

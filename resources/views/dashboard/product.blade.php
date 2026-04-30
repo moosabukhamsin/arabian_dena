@@ -30,7 +30,7 @@
                                     <table id="file-datatable" class="table table-bordered text-nowrap key-buttons border-bottom">
                                         <thead>
                                             <tr>
-                                                <th class="border-bottom-0">ID</th>
+                                                <th class="border-bottom-0">Product Item ID</th>
                                                 <th class="border-bottom-0">Product</th>
                                                 <th class="border-bottom-0">Series Number</th>
                                                 <th class="border-bottom-0">Inspection Date</th>
@@ -43,7 +43,7 @@
                                         <tbody>
                                             @foreach ($Product->ProductItems->where('is_active', true) as $ProductItem)
                                                 <tr>
-                                                    <td>{{ $ProductItem->id }}</td>
+                                                    <td data-order="{{ $ProductItem->product_item_code ?? $ProductItem->id }}">{{ $ProductItem->product_item_code ?? $ProductItem->id }}</td>
                                                     <td>
                                                         @if($ProductItem->product->image)
                                                             <img src="{{ $ProductItem->product->image_url }}" alt="Product Image" width="30" class="me-2">
@@ -137,6 +137,10 @@
                     @csrf
                     <div class="modal-body">
                         <div class="form-group">
+                            <label class="form-label">Product Item ID</label>
+                            <input type="text" name="product_item_code" class="form-control" placeholder="Leave empty to auto-use numeric ID">
+                        </div>
+                        <div class="form-group">
                             <label class="form-label">series number</label>
                             <input type="text" name="series_number" class="form-control" required>
                         </div>
@@ -147,7 +151,7 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">certificate</label>
-                            <input type="file" name="certificate" class="form-control" required>
+                            <input type="file" name="certificate" class="form-control">
                         </div>
 
                     </div>
@@ -166,7 +170,7 @@
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Edit Product Item #{{ $ProductItem->id }}</h5>
+                    <h5 class="modal-title">Edit Product Item #{{ $ProductItem->product_item_code ?? $ProductItem->id }}</h5>
                     <button class="btn-close" data-bs-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">×</span>
                     </button>
@@ -174,6 +178,10 @@
                 <form action="{{ route('dashboard.update_product_item', $ProductItem->id) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="modal-body">
+                        <div class="form-group">
+                            <label class="form-label">Product Item ID</label>
+                            <input type="text" name="product_item_code" class="form-control" value="{{ $ProductItem->product_item_code ?? $ProductItem->id }}">
+                        </div>
                         <div class="form-group">
                             <label class="form-label">Series Number</label>
                             <input type="text" name="series_number" class="form-control" value="{{ $ProductItem->series_number }}" required>

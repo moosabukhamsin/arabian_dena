@@ -23,4 +23,9 @@ class ProductItem extends Model
         return $this->hasManyThrough(BackloadItem::class, OrderItem::class);
     }
 
+    public function Certificates()
+    {
+        return $this->hasMany(ProductItemCertificate::class);
+    }
+
 }

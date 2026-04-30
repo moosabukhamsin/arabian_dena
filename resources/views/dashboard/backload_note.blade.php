@@ -70,25 +70,25 @@
                 <th>Received From</th>
                 <td>{{ $Backload->Company->name ?? '' }}</td>
                 <th>BLKD#</th>
-                <td style="color:#c00; font-weight:bold;"></td>
+                <td style="color:#c00; font-weight:bold;">{{ $Backload->backload_number ?? '' }}</td>
             </tr>
             <tr>
                 <th>Contact #</th>
                 <td>{{ $Backload->Company->mobile_number ?? '' }}</td>
-                <th></th>
-                <td></td>
+                <th>Site</th>
+                <td>{{ $siteText ?? '' }}</td>
             </tr>
             <tr>
                 <th>Email</th>
                 <td>{{ $Backload->Company->email ?? '' }}</td>
-                <th></th>
+                <th>P.O. Ref #</th>
                 <td></td>
             </tr>
             <tr>
                 <th>Client Code</th>
                 <td>{{ $clientCode ?? '' }}</td>
-                <th></th>
-                <td></td>
+                <th>Address</th>
+                <td>{{ $Backload->address ?? '' }}</td>
             </tr>
             <tr>
                 <th>Date</th>

@@ -8,6 +8,11 @@
                 <!-- PAGE-HEADER -->
                 <div class="page-header">
                     <h1 class="page-title">Dashboard 01</h1>
+                    <div class="page-options">
+                        <a href="{{ url()->previous() ?: route('dashboard.companies') }}" class="btn btn-primary">
+                            <i class="fe fe-arrow-left"></i> Back
+                        </a>
+                    </div>
                 </div>
                 <!-- PAGE-HEADER END -->
                 <!-- ROW-2 -->
@@ -291,14 +296,18 @@
 
 
                         <div class="form-group">
+                            <label class="form-label">Backload Number</label>
+                            <input type="text" class="form-control" disabled>
+                        </div>
+                        <div class="form-group">
                             <label class="form-label">Date</label>
                             <input type="date" name="date" class="form-control" required>
                         </div>
-
                         <div class="form-group">
-                            <label class="form-label">Back Load Note</label>
-                            <input type="file" name="back_load_note" class="form-control" required>
+                            <label class="form-label">Address</label>
+                            <input type="text" name="address" class="form-control" placeholder="Enter address">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label">Truck Number</label>
                             <input type="text" name="truck_number" class="form-control" placeholder="Enter truck number" required>

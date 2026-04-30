@@ -30,18 +30,41 @@
                                     <table id="file-datatable" class="table table-bordered text-nowrap key-buttons border-bottom">
                                         <thead>
                                             <tr>
-                                                <th class="border-bottom-0">ID</th>
-                                                <th class="border-bottom-0">Name</th>
+                                                <th class="border-bottom-0">Category ID</th>
+                                                <th class="border-bottom-0">Name of Category</th>
                                                 <th class="border-bottom-0">Product Count</th>
                                                 <th class="border-bottom-0">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             @foreach ($categories as $category)
+                                                @php
+                                                    $activeProducts = $category->Products->where('is_active', true);
+                                                    $popoverLines = '';
+                                                    foreach ($activeProducts as $p) {
+                                                        $itemCount = $p->ProductItems->where('is_active', true)->count();
+                                                        $popoverLines .= '<div>' . $itemCount . ' ' . e($p->name) . '</div>';
+                                                    }
+                                                    $popoverContent = $activeProducts->isEmpty()
+                                                        ? '<em>No products yet</em>'
+                                                        : '<div style=&quot;font-size:12px;line-height:1.7;&quot;>' . $popoverLines . '</div>';
+                                                @endphp
                                                 <tr>
-                                                    <td>{{ $category->id }} </td>
-                                                    <td>{{ $category->name }}</td>
-                                                    <td>{{ $category->Products->where('is_active', true)->count() }}</td>
+                                                    <td data-order="{{ $category->category_code ?? $category->id }}">{{ $category->category_code ?? $category->id }}</td>
+                                                    <td>
+                                                        <span
+                                                            class="category-name-hover"
+                                                            tabindex="0"
+                                                            style="cursor:default; border-bottom: 1px dashed #888;"
+                                                            data-bs-toggle="popover"
+                                                            data-bs-trigger="hover focus"
+                                                            data-bs-html="true"
+                                                            data-bs-placement="right"
+                                                            title="{{ $category->name }}"
+                                                            data-bs-content="{{ $popoverContent }}"
+                                                        >{{ $category->name }}</span>
+                                                    </td>
+                                                    <td>{{ $activeProducts->count() }}</td>
 
                                                     <td>
                                                         <button class="btn btn-sm btn-primary me-1" data-bs-toggle="modal" data-bs-target="#editCategoryModal{{ $category->id }}">
@@ -81,6 +104,10 @@
                     @csrf
                     <div class="modal-body">
                         <div class="form-group">
+                            <label class="form-label">Category ID</label>
+                            <input type="text" name="category_code" class="form-control" placeholder="Leave empty to auto-use numeric ID">
+                        </div>
+                        <div class="form-group">
                             <label class="form-label">Name</label>
                             <input type="text" name="name" class="form-control">
                         </div>
@@ -111,6 +138,10 @@
                     @csrf
                     <div class="modal-body">
                         <div class="form-group">
+                            <label class="form-label">Category ID</label>
+                            <input type="text" name="category_code" class="form-control" value="{{ $category->category_code ?? $category->id }}">
+                        </div>
+                        <div class="form-group">
                             <label class="form-label">Name</label>
                             <input type="text" name="name" class="form-control" value="{{ $category->name }}" required>
                         </div>
@@ -132,5 +163,14 @@
     </div>
     @endforeach
 
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.category-name-hover').forEach(function (el) {
+            new bootstrap.Popover(el, { sanitize: false });
+        });
+    });
+</script>
+@endpush
 @endsection
 
