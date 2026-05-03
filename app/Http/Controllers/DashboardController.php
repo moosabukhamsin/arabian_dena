@@ -945,15 +945,15 @@ class DashboardController extends Controller
         $unitPrice = 0;
 
         if ($company->pricing_type === 'daily_monthly') {
-            // Day / Monthly: <10 days daily; >=10 days monthly (per-day rate × duration below)
-            if ($durationDays < 10) {
+            // Day / Monthly: 1–10 daily; 11–30 monthly (spec); >30 uses same monthly rate
+            if ($durationDays <= 10) {
                 $unitPrice = $dailyPrice;
             } else {
                 $unitPrice = $monthlyPrice;
             }
         } else {
-            // Day / Weekly / Monthly: <7 daily; 7–14 weekly; >14 monthly
-            if ($durationDays < 7) {
+            // Day / Weekly / Monthly: 1–7 daily; 8–14 weekly; 15–30 monthly (spec); >30 same monthly rate
+            if ($durationDays <= 7) {
                 $unitPrice = $dailyPrice;
             } elseif ($durationDays <= 14) {
                 $unitPrice = $weeklyPrice;
@@ -1098,8 +1098,8 @@ class DashboardController extends Controller
         $breakdown = [];
 
         if ($company->pricing_type === 'daily_monthly') {
-            // Day / Monthly: <10 days daily; >=10 days monthly
-            if ($days < 10) {
+            // Day / Monthly: 1–10 daily; 11–30 monthly (spec); >30 same monthly rate
+            if ($days <= 10) {
                 $totalPrice = max(0, $days * $dailyPrice);
                 $breakdown[] = "{$days} days × $" . number_format($dailyPrice, 2) . " (daily)";
             } else {
@@ -1107,8 +1107,8 @@ class DashboardController extends Controller
                 $breakdown[] = "{$days} days × $" . number_format($monthlyPrice, 2) . " (monthly)";
             }
         } else {
-            // Day / Weekly / Monthly: <7 daily; 7–14 weekly; >14 monthly
-            if ($days < 7) {
+            // Day / Weekly / Monthly: 1–7 daily; 8–14 weekly; 15–30 monthly (spec); >30 same monthly rate
+            if ($days <= 7) {
                 $totalPrice = max(0, $days * $dailyPrice);
                 $breakdown[] = "{$days} days × $" . number_format($dailyPrice, 2) . " (daily)";
             } elseif ($days <= 14) {

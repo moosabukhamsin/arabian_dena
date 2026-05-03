@@ -89,7 +89,6 @@
                                                 <th class="border-bottom-0">Company Name</th>
                                                 <th class="border-bottom-0">Site Name</th>
                                                 <th class="border-bottom-0">Item Count</th>
-                                                <th class="border-bottom-0">Total</th>
                                                 <th class="border-bottom-0">Actions</th>
 
                                             </tr>
@@ -101,7 +100,6 @@
                                                     <td>{{ $order->Company->name }}</td>
                                                     <td>{{ $order->site_code }}</td>
                                                     <td>{{ $order->OrderItems->count() }}</td>
-                                                    <td>{{ number_format($order->total_amount ?? 0, 2) }} SAR</td>
                                                     <td>
                                                         <button class="btn btn-sm btn-primary me-1" data-bs-toggle="modal" data-bs-target="#editOrderModal{{ $order->id }}">
                                                             <span class="fe fe-edit"></span> Edit
