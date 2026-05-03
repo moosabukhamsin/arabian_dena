@@ -249,9 +249,10 @@
 
                         <div class="form-group">
                             <label class="form-label">Products</label>
-                            <div class="p-2 border" style="max-height: 220px; overflow: auto;">
+                            <input type="search" id="createOrderProductSearch" class="form-control mb-2" placeholder="Search products by name..." autocomplete="off" aria-label="Search products by name">
+                            <div id="createOrderProductList" class="p-2 border" style="max-height: 220px; overflow: auto;">
                                 @foreach ($products as $product)
-                                    <div class="d-flex align-items-center gap-3 mb-2">
+                                    <div class="create-order-product-row d-flex align-items-center gap-3 mb-2" data-product-name="{{ e($product->name) }}">
                                         <label class="d-flex align-items-center gap-2 mb-0">
                                             <input type="checkbox" name="product_ids[]" value="{{ $product->id }}">
                                             <span>{{ $product->name }}</span>
@@ -268,6 +269,7 @@
                                     </div>
                                 @endforeach
                             </div>
+                            <p id="createOrderProductNoMatches" class="text-muted small mb-0 mt-1 d-none">No products match your search.</p>
                         </div>
 
 
@@ -459,3 +461,45 @@
     </div>
     @endforeach
 @endsection
+
+@push('scripts')
+<script>
+(function () {
+    var search = document.getElementById('createOrderProductSearch');
+    var modal = document.getElementById('ordermodal');
+    var noMatches = document.getElementById('createOrderProductNoMatches');
+    var productList = document.getElementById('createOrderProductList');
+    if (!search || !modal) return;
+
+    function filterCreateOrderProducts() {
+        var q = (search.value || '').trim().toLowerCase();
+        var rows = modal.querySelectorAll('.create-order-product-row');
+        var visibleCount = 0;
+        rows.forEach(function (row) {
+            var name = (row.getAttribute('data-product-name') || '').toLowerCase();
+            var show = !q || name.indexOf(q) !== -1;
+            // Must beat Bootstrap .d-flex { display: flex !important }
+            if (show) {
+                row.style.removeProperty('display');
+            } else {
+                row.style.setProperty('display', 'none', 'important');
+            }
+            if (show) visibleCount++;
+        });
+        if (noMatches) {
+            noMatches.classList.toggle('d-none', visibleCount > 0 || rows.length === 0);
+        }
+        if (productList) {
+            var hideEmptyList = q.length > 0 && visibleCount === 0;
+            productList.classList.toggle('d-none', hideEmptyList);
+        }
+    }
+
+    search.addEventListener('input', filterCreateOrderProducts);
+    modal.addEventListener('shown.bs.modal', function () {
+        search.value = '';
+        filterCreateOrderProducts();
+    });
+})();
+</script>
+@endpush

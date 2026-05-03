@@ -48,6 +48,7 @@
                                                 <th class="border-bottom-0">ID</th>
                                                 <th class="border-bottom-0">Product Name</th>
                                                 <th class="border-bottom-0">Series Number</th>
+                                                <th class="border-bottom-0">Certificate</th>
                                                 <th class="border-bottom-0">Action</th>
 
                                             </tr>
@@ -59,6 +60,20 @@
                                                     <td>{{ $ProductItem->id }} - @if($ProductItem->Product->image_url)<img src="{{ $ProductItem->Product->image_url }}" alt="Product Image" width="25">@endif</td>
                                                     <td>{{ $ProductItem->product->name }}</td>
                                                     <td>{{ $ProductItem->series_number }}</td>
+                                                    <td>
+                                                        @php
+                                                            $latestCert = $ProductItem->Certificates->first();
+                                                        @endphp
+                                                        @if($latestCert)
+                                                            <a href="{{ URL('storage/' . $latestCert->certificate) }}" target="_blank" class="btn btn-sm btn-outline-primary">View</a>
+                                                            <a href="{{ route('dashboard.download_product_item_certificate_version', $latestCert) }}" class="btn btn-sm btn-primary">Download</a>
+                                                        @elseif($ProductItem->certificate)
+                                                            <a href="{{ URL('storage/' . $ProductItem->certificate) }}" target="_blank" class="btn btn-sm btn-outline-primary">View</a>
+                                                            <a href="{{ route('dashboard.download_product_item_certificate', $ProductItem) }}" class="btn btn-sm btn-primary">Download</a>
+                                                        @else
+                                                            <span class="text-muted">—</span>
+                                                        @endif
+                                                    </td>
                                                     <td class=" table_input">
                                                         <form action="{{ route('dashboard.store_order_item',['Order' => $Order,'ProductItem' => $ProductItem]) }}" method="POST" >
                                                             <input type="text" name="product_item_id" value="{{ $ProductItem->id }}" hidden>
@@ -105,6 +120,7 @@
                                                 <th class="border-bottom-0">ID</th>
                                                 <th class="border-bottom-0">Product Name</th>
                                                 <th class="border-bottom-0">Series Number</th>
+                                                <th class="border-bottom-0">Certificate</th>
                                                 <th class="border-bottom-0">Start Date</th>
                                                 <th class="border-bottom-0">End Date</th>
                                                 <th class="border-bottom-0">Duration</th>
@@ -118,6 +134,21 @@
                                                     <td>{{ $OrderItem->id }} - @if($OrderItem->ProductItem->Product->image_url)<img src="{{ $OrderItem->ProductItem->Product->image_url }}" alt="Product Image" width="25">@endif</td>
                                                     <td>{{ $OrderItem->ProductItem->product->name }}</td>
                                                     <td>{{ $OrderItem->ProductItem->series_number }}</td>
+                                                    <td>
+                                                        @php
+                                                            $oiPi = $OrderItem->ProductItem;
+                                                            $oiLatestCert = $oiPi->Certificates->first();
+                                                        @endphp
+                                                        @if($oiLatestCert)
+                                                            <a href="{{ URL('storage/' . $oiLatestCert->certificate) }}" target="_blank" class="btn btn-sm btn-outline-primary">View</a>
+                                                            <a href="{{ route('dashboard.download_product_item_certificate_version', $oiLatestCert) }}" class="btn btn-sm btn-primary">Download</a>
+                                                        @elseif($oiPi->certificate)
+                                                            <a href="{{ URL('storage/' . $oiPi->certificate) }}" target="_blank" class="btn btn-sm btn-outline-primary">View</a>
+                                                            <a href="{{ route('dashboard.download_product_item_certificate', $oiPi) }}" class="btn btn-sm btn-primary">Download</a>
+                                                        @else
+                                                            <span class="text-muted">—</span>
+                                                        @endif
+                                                    </td>
                                                     <td>{{ $OrderItem->Order->delivery_date }}</td>
                                                     <td>
                                                         @php

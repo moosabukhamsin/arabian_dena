@@ -691,8 +691,20 @@ class DashboardController extends Controller
             })
             ->whereNotIn('id', $Order->OrderItems()->pluck('product_item_id')->toArray()) // Not already in this order
             ->whereNotIn('id', $rentedProductItemIds) // Not currently rented by any company
-            ->with('product') // Eager load product relationship for better performance
+            ->with([
+                'product',
+                'Certificates' => function ($q) {
+                    $q->orderByDesc('created_at');
+                },
+            ])
             ->get();
+
+        $Order->load([
+            'OrderItems.ProductItem.product',
+            'OrderItems.ProductItem.Certificates' => function ($q) {
+                $q->orderByDesc('created_at');
+            },
+        ]);
 
         $timesheetRows = $this->buildTimeSheetRowsForOrder($Order);
 
@@ -933,17 +945,17 @@ class DashboardController extends Controller
         $unitPrice = 0;
 
         if ($company->pricing_type === 'daily_monthly') {
-            // Rule 1: daily_monthly
-            if ($durationDays <= 10) {
+            // Day / Monthly: <10 days daily; >=10 days monthly (per-day rate × duration below)
+            if ($durationDays < 10) {
                 $unitPrice = $dailyPrice;
             } else {
                 $unitPrice = $monthlyPrice;
             }
         } else {
-            // Rule 2: daily_weekly_monthly
-            if ($durationDays <= 7) {
+            // Day / Weekly / Monthly: <7 daily; 7–14 weekly; >14 monthly
+            if ($durationDays < 7) {
                 $unitPrice = $dailyPrice;
-            } elseif ($durationDays <= 30) {
+            } elseif ($durationDays <= 14) {
                 $unitPrice = $weeklyPrice;
             } else {
                 $unitPrice = $monthlyPrice;
@@ -1086,27 +1098,25 @@ class DashboardController extends Controller
         $breakdown = [];
 
         if ($company->pricing_type === 'daily_monthly') {
-            // Rule 1: daily_monthly
-            if ($days <= 10) {
+            // Day / Monthly: <10 days daily; >=10 days monthly
+            if ($days < 10) {
                 $totalPrice = max(0, $days * $dailyPrice);
                 $breakdown[] = "{$days} days × $" . number_format($dailyPrice, 2) . " (daily)";
             } else {
-                $totalPrice = max(0, $monthlyPrice);
-                $breakdown[] = "1 month × $" . number_format($monthlyPrice, 2) . " (monthly)";
+                $totalPrice = max(0, $days * $monthlyPrice);
+                $breakdown[] = "{$days} days × $" . number_format($monthlyPrice, 2) . " (monthly)";
             }
         } else {
-            // Rule 2: daily_weekly_monthly
-            if ($days <= 7) {
+            // Day / Weekly / Monthly: <7 daily; 7–14 weekly; >14 monthly
+            if ($days < 7) {
                 $totalPrice = max(0, $days * $dailyPrice);
                 $breakdown[] = "{$days} days × $" . number_format($dailyPrice, 2) . " (daily)";
-            } elseif ($days <= 30) {
-                $weeks = ceil($days / 7);
-                $totalPrice = max(0, $weeks * $weeklyPrice);
-                $breakdown[] = "{$weeks} week" . ($weeks !== 1 ? 's' : '') . " × $" . number_format($weeklyPrice, 2) . " (weekly)";
+            } elseif ($days <= 14) {
+                $totalPrice = max(0, $days * $weeklyPrice);
+                $breakdown[] = "{$days} days × $" . number_format($weeklyPrice, 2) . " (weekly)";
             } else {
-                $months = ceil($days / 30);
-                $totalPrice = max(0, $months * $monthlyPrice);
-                $breakdown[] = "{$months} month" . ($months !== 1 ? 's' : '') . " × $" . number_format($monthlyPrice, 2) . " (monthly)";
+                $totalPrice = max(0, $days * $monthlyPrice);
+                $breakdown[] = "{$days} days × $" . number_format($monthlyPrice, 2) . " (monthly)";
             }
         }
 
