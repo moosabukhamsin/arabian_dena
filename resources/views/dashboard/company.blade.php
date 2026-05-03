@@ -343,7 +343,23 @@
 
     <!-- Edit Order Modals -->
     @foreach ($Company->Orders->where('is_active', true) as $order)
-    <div class="modal fade" id="editOrderModal{{ $order->id }}" tabindex="-1" role="dialog">
+    @php
+        $editOrderSelectedProductIds = collect($order->product_ids ?? [])
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+        if (count($editOrderSelectedProductIds) === 0) {
+            $editOrderSelectedProductIds = $order->OrderItems
+                ->map(fn ($oi) => (int) ($oi->ProductItem?->product_id ?? 0))
+                ->filter(fn ($id) => $id > 0)
+                ->unique()
+                ->values()
+                ->all();
+        }
+    @endphp
+    <div class="modal fade edit-order-modal" id="editOrderModal{{ $order->id }}" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-lg" role="document">
             <div class="modal-content">
                 <div class="modal-header">
@@ -375,15 +391,16 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">Products</label>
-                            <div class="p-2 border" style="max-height: 220px; overflow: auto;">
+                            <input type="search" class="form-control mb-2 edit-order-product-search" placeholder="Search products by name..." autocomplete="off" aria-label="Search products by name">
+                            <div class="edit-order-product-list p-2 border" style="max-height: 220px; overflow: auto;">
                                 @foreach ($products as $product)
-                                    <div class="d-flex align-items-center gap-3 mb-2">
+                                    <div class="edit-order-product-row d-flex align-items-center gap-3 mb-2" data-product-name="{{ e($product->name) }}">
                                         <label class="d-flex align-items-center gap-2 mb-0">
                                             <input
                                                 type="checkbox"
                                                 name="product_ids[]"
                                                 value="{{ $product->id }}"
-                                                {{ in_array($product->id, $order->product_ids ?? [], true) ? 'checked' : '' }}
+                                                {{ in_array((int) $product->id, $editOrderSelectedProductIds, true) ? 'checked' : '' }}
                                             >
                                             <span>{{ $product->name }}</span>
                                         </label>
@@ -400,6 +417,7 @@
                                     </div>
                                 @endforeach
                             </div>
+                            <p class="edit-order-product-no-matches text-muted small mb-0 mt-1 d-none">No products match your search.</p>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Delivery Date</label>
@@ -463,15 +481,9 @@
 @push('scripts')
 <script>
 (function () {
-    var search = document.getElementById('createOrderProductSearch');
-    var modal = document.getElementById('ordermodal');
-    var noMatches = document.getElementById('createOrderProductNoMatches');
-    var productList = document.getElementById('createOrderProductList');
-    if (!search || !modal) return;
-
-    function filterCreateOrderProducts() {
-        var q = (search.value || '').trim().toLowerCase();
-        var rows = modal.querySelectorAll('.create-order-product-row');
+    function filterProductRows(scopeEl, searchValue, rowSelector, noMatchesEl, productListEl) {
+        var q = (searchValue || '').trim().toLowerCase();
+        var rows = scopeEl.querySelectorAll(rowSelector);
         var visibleCount = 0;
         rows.forEach(function (row) {
             var name = (row.getAttribute('data-product-name') || '').toLowerCase();
@@ -484,19 +496,56 @@
             }
             if (show) visibleCount++;
         });
-        if (noMatches) {
-            noMatches.classList.toggle('d-none', visibleCount > 0 || rows.length === 0);
+        if (noMatchesEl) {
+            noMatchesEl.classList.toggle('d-none', visibleCount > 0 || rows.length === 0);
         }
-        if (productList) {
+        if (productListEl) {
             var hideEmptyList = q.length > 0 && visibleCount === 0;
-            productList.classList.toggle('d-none', hideEmptyList);
+            productListEl.classList.toggle('d-none', hideEmptyList);
         }
     }
 
-    search.addEventListener('input', filterCreateOrderProducts);
-    modal.addEventListener('shown.bs.modal', function () {
-        search.value = '';
-        filterCreateOrderProducts();
+    var createSearch = document.getElementById('createOrderProductSearch');
+    var createModal = document.getElementById('ordermodal');
+    var createNoMatches = document.getElementById('createOrderProductNoMatches');
+    var createProductList = document.getElementById('createOrderProductList');
+    if (createSearch && createModal) {
+        function filterCreateOrderProducts() {
+            filterProductRows(
+                createModal,
+                createSearch.value,
+                '.create-order-product-row',
+                createNoMatches,
+                createProductList
+            );
+        }
+        createSearch.addEventListener('input', filterCreateOrderProducts);
+        createModal.addEventListener('shown.bs.modal', function () {
+            createSearch.value = '';
+            filterCreateOrderProducts();
+        });
+    }
+
+    function filterEditOrderProducts(searchInput) {
+        var modal = searchInput.closest('.edit-order-modal');
+        if (!modal) return;
+        var list = modal.querySelector('.edit-order-product-list');
+        var noMatches = modal.querySelector('.edit-order-product-no-matches');
+        filterProductRows(modal, searchInput.value, '.edit-order-product-row', noMatches, list);
+    }
+
+    document.addEventListener('input', function (e) {
+        if (e.target && e.target.classList && e.target.classList.contains('edit-order-product-search')) {
+            filterEditOrderProducts(e.target);
+        }
+    });
+    document.addEventListener('shown.bs.modal', function (e) {
+        if (!e.target || !e.target.classList || !e.target.classList.contains('edit-order-modal')) return;
+        var s = e.target.querySelector('.edit-order-product-search');
+        if (s) {
+            s.value = '';
+            filterEditOrderProducts(s);
+        }
     });
 })();
 </script>
