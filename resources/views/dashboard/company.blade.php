@@ -297,11 +297,20 @@
 
                         <div class="form-group">
                             <label class="form-label">Backload Number</label>
-                            <input type="text" class="form-control" disabled>
+                            <input type="text" name="backload_number" class="form-control" value="{{ $suggestedBackloadNumber ?? '' }}" placeholder="Enter backload number">
                         </div>
                         <div class="form-group">
                             <label class="form-label">Date</label>
                             <input type="date" name="date" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Time</label>
+                            <select name="time" class="form-control">
+                                <option value="">Select time</option>
+                                <option value="Morning">Morning</option>
+                                <option value="Afternoon">Afternoon</option>
+                                <option value="Evening">Evening</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Address</label>
@@ -323,6 +332,10 @@
                         <div class="form-group">
                             <label class="form-label">Driver ID Number</label>
                             <input type="text" name="driver_id_number" class="form-control" placeholder="Enter driver ID number" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Remarks</label>
+                            <input type="text" name="remarks" class="form-control" placeholder="Enter remarks">
                         </div>
                         <div class="form-group">
                             <label class="form-label">Attachment</label>
@@ -372,9 +385,10 @@
                     @csrf
                     <div class="modal-body">
                         <div class="form-group">
-                            <label class="form-label">Order Number</label>
-                            <input type="text" class="form-control" value="{{ $order->order_number }}" readonly>
+                            <label class="form-label">Order Request No</label>
+                            <input type="text" name="order_number" class="form-control" value="{{ $order->order_number }}" placeholder="Enter order request number">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label">Employee</label>
                             <select name="company_employe_id" class="form-control" required>
@@ -424,8 +438,21 @@
                             <input type="date" name="delivery_date" class="form-control" value="{{ $order->delivery_date }}">
                         </div>
                         <div class="form-group">
+                            <label class="form-label">Time</label>
+                            <select name="time" class="form-control">
+                                <option value="">Select time</option>
+                                <option value="Morning" {{ ($order->time ?? '') === 'Morning' ? 'selected' : '' }}>Morning</option>
+                                <option value="Afternoon" {{ ($order->time ?? '') === 'Afternoon' ? 'selected' : '' }}>Afternoon</option>
+                                <option value="Evening" {{ ($order->time ?? '') === 'Evening' ? 'selected' : '' }}>Evening</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
                             <label class="form-label">Address</label>
                             <textarea name="address" class="form-control">{{ $order->address }}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">PO Number</label>
+                            <input type="text" name="po_number" class="form-control" value="{{ $order->po_number }}" placeholder="Enter PO number">
                         </div>
                         <div class="form-group">
                             <label class="form-label">PO Reference</label>

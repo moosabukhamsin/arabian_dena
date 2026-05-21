@@ -81,8 +81,8 @@
             <tr>
                 <th>Email</th>
                 <td>{{ $Backload->Company->email ?? '' }}</td>
-                <th>P.O. Ref #</th>
-                <td></td>
+                <th>PO Number</th>
+                <td>{{ $poNumbersText ?? '' }}</td>
             </tr>
             <tr>
                 <th>Client Code</th>
@@ -146,8 +146,8 @@
             <tr>
                 <td class="label">Vehicle #</td>
                 <td>{{ $Backload->truck_number ?? '' }}</td>
-                <td class="label">Remarks for Driver</td>
-                <td></td>
+                <td class="label">Remarks</td>
+                <td>{{ $Backload->remarks ?? '' }}</td>
             </tr>
         </table>
 

@@ -20,69 +20,12 @@ use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Notifications\DatabaseNotification;
+use ZipArchive;
 
 
 class DashboardController extends Controller
 {
-    private function buildTimeSheetRowsForOrder(Order $Order): array
-    {
-        // Calculate pricing for each order item (same logic as Order page)
-        $Order->load(['OrderItems.productItem.product', 'Company']);
-
-        foreach ($Order->OrderItems as $orderItem) {
-            $pricingInfo = $this->calculateOrderItemPricing($orderItem, $Order->Company);
-            $orderItem->unit_price = $pricingInfo['unit_price'];
-            $orderItem->duration_days = $pricingInfo['duration_days'];
-            $orderItem->total_price = $pricingInfo['total_price'];
-        }
-
-        $backloadItems = BackloadItem::query()
-            ->whereIn('order_item_id', $Order->OrderItems->pluck('id')->toArray())
-            ->with('Backload')
-            ->get();
-
-        $backloadDateByOrderItemId = [];
-        $backloadIdByOrderItemId = [];
-        foreach ($backloadItems as $bi) {
-            if ($bi->order_item_id) {
-                $oid = (int) $bi->order_item_id;
-                $backloadDateByOrderItemId[$oid] = $bi->Backload?->date;
-                $backloadIdByOrderItemId[$oid] = $bi->backload_id ?? $bi->Backload?->id;
-            }
-        }
-
-        $timesheetRows = [];
-        $i = 1;
-        foreach ($Order->OrderItems as $orderItem) {
-            $orderItemId = (int) $orderItem->id;
-            $productName = $orderItem->productItem?->product?->name ?? '';
-            $series = $orderItem->productItem?->series_number ?? '';
-            $backloadDate = $backloadDateByOrderItemId[$orderItemId] ?? null;
-            $backloadId = $backloadIdByOrderItemId[$orderItemId] ?? null;
-
-            $timesheetRows[] = [
-                'file_no' => $Order->order_number ?? '',
-                'site' => $Order->site_code ?? '',
-                'sno' => $i++,
-                'description' => $productName,
-                'tracking_number' => $series,
-                'invoice_number' => '',
-                'po_reference' => $Order->po_reference ? basename($Order->po_reference) : '',
-                'delivery_note' => 'Order: ' . $Order->id,
-                'delivery_date' => $Order->delivery_date ?: ($Order->created_at?->format('Y-m-d') ?? ''),
-                'delivery_time' => '',
-                'backload_note' => $backloadId !== null ? 'Backload: ' . $backloadId : '',
-                'backload_date' => $backloadDate ?? '',
-                'time_blkd' => '',
-                'rental_status' => $backloadDate ? 'RETURNED' : 'UNDER RENTAL',
-                'rental_period' => ($orderItem->duration_days ?? ''),
-                'unit_rental_cost' => ($orderItem->unit_price ?? ''),
-                'total_rental_cost' => ($orderItem->total_price ?? ''),
-            ];
-        }
-
-        return $timesheetRows;
-    }
+    private const TIME_SLOTS = ['Morning', 'Afternoon', 'Evening'];
 
     private function buildTimeSheetRowsForOrderItems($orderItems): array
     {
@@ -94,11 +37,13 @@ class DashboardController extends Controller
             ->get();
 
         $backloadDateByOrderItemId = [];
+        $backloadTimeByOrderItemId = [];
         $backloadIdByOrderItemId = [];
         foreach ($backloadItems as $bi) {
             if ($bi->order_item_id) {
                 $oid = (int) $bi->order_item_id;
                 $backloadDateByOrderItemId[$oid] = $bi->Backload?->date;
+                $backloadTimeByOrderItemId[$oid] = $bi->Backload?->time;
                 $backloadIdByOrderItemId[$oid] = $bi->backload_id ?? $bi->Backload?->id;
             }
         }
@@ -127,12 +72,13 @@ class DashboardController extends Controller
                 'tracking_number' => $series,
                 'invoice_number' => '',
                 'po_reference' => $order?->po_reference ? basename($order->po_reference) : '',
+                'po_number' => $order?->po_number ?? '',
                 'delivery_note' => $order ? ('Order: ' . $order->id) : '',
                 'delivery_date' => $order?->delivery_date ?: ($order?->created_at?->format('Y-m-d') ?? ''),
-                'delivery_time' => '',
+                'delivery_time' => $order?->time ?? '',
                 'backload_note' => $backloadId !== null ? 'Backload: ' . $backloadId : '',
                 'backload_date' => $backloadDate ?? '',
-                'time_blkd' => '',
+                'time_blkd' => $backloadTimeByOrderItemId[$orderItemId] ?? '',
                 'rental_status' => $backloadDate ? 'RETURNED' : 'UNDER RENTAL',
                 'rental_period' => ($orderItem->duration_days ?? ''),
                 'unit_rental_cost' => ($orderItem->unit_price ?? ''),
@@ -153,6 +99,36 @@ class DashboardController extends Controller
         }
 
         return $initials !== '' ? $initials : 'COMP';
+    }
+
+    /**
+     * @return array<int, list<string>>
+     */
+    private function remarksByProductIdFromOrder(Order $order): array
+    {
+        $remarksByProductId = [];
+
+        foreach ($order->OrderItems as $orderItem) {
+            $productId = (int) ($orderItem->productItem?->product_id ?? 0);
+            if ($productId <= 0) {
+                continue;
+            }
+
+            $remark = trim((string) ($orderItem->remarks ?? ''));
+            if ($remark === '') {
+                continue;
+            }
+
+            if (!isset($remarksByProductId[$productId])) {
+                $remarksByProductId[$productId] = [];
+            }
+
+            if (!in_array($remark, $remarksByProductId[$productId], true)) {
+                $remarksByProductId[$productId][] = $remark;
+            }
+        }
+
+        return $remarksByProductId;
     }
 
     private function generateOrderNumberForCompany(Company $company): string
@@ -355,8 +331,13 @@ class DashboardController extends Controller
         }
 
         $products = Product::where('is_active', 1)->get();
+        $suggestedBackloadNumber = $this->generateBackloadNumberForCompany($Company);
 
-        return view('dashboard.company', ['Company' => $Company, 'products' => $products]);
+        return view('dashboard.company', [
+            'Company' => $Company,
+            'products' => $products,
+            'suggestedBackloadNumber' => $suggestedBackloadNumber,
+        ]);
     }
     public function StoreEmployee(Request $request,Company $Company)
     {
@@ -458,6 +439,100 @@ class DashboardController extends Controller
 
         return Storage::disk('public')->download($path);
     }
+
+    private function latestCertificatePathForProductItem(ProductItem $productItem): ?string
+    {
+        if (!$productItem->relationLoaded('Certificates')) {
+            $productItem->load(['Certificates' => function ($q) {
+                $q->orderByDesc('created_at');
+            }]);
+        }
+
+        $current = $productItem->Certificates->first();
+        $path = $current?->certificate ?: $productItem->certificate;
+
+        if (!$path || !Storage::disk('public')->exists($path)) {
+            return null;
+        }
+
+        return $path;
+    }
+
+    public function DownloadOrderCertificatesZip(Order $Order)
+    {
+        $Order->load([
+            'OrderItems.ProductItem.product',
+            'OrderItems.ProductItem.Certificates' => function ($q) {
+                $q->orderByDesc('created_at');
+            },
+        ]);
+
+        $seenProductItemIds = [];
+        $filesToAdd = [];
+
+        foreach ($Order->OrderItems as $orderItem) {
+            $productItem = $orderItem->ProductItem;
+            if (!$productItem || isset($seenProductItemIds[$productItem->id])) {
+                continue;
+            }
+            $seenProductItemIds[$productItem->id] = true;
+
+            $path = $this->latestCertificatePathForProductItem($productItem);
+            if ($path) {
+                $filesToAdd[] = [
+                    'path' => $path,
+                    'productItem' => $productItem,
+                ];
+            }
+        }
+
+        if ($filesToAdd === []) {
+            return redirect()->back()->withErrors([
+                'certificate' => 'No certificates found for the product items in this order.',
+            ]);
+        }
+
+        if (!class_exists(ZipArchive::class)) {
+            return redirect()->back()->withErrors([
+                'certificate' => 'ZIP support is not available on this server.',
+            ]);
+        }
+
+        $tempDir = storage_path('app/temp');
+        if (!is_dir($tempDir)) {
+            mkdir($tempDir, 0755, true);
+        }
+
+        $zipPath = $tempDir . '/order_' . $Order->id . '_certificates_' . uniqid('', true) . '.zip';
+        $zip = new ZipArchive();
+        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            return redirect()->back()->withErrors(['certificate' => 'Could not create ZIP file.']);
+        }
+
+        $usedNames = [];
+        foreach ($filesToAdd as $entry) {
+            $fullPath = Storage::disk('public')->path($entry['path']);
+            $series = (string) ($entry['productItem']->series_number ?? ('item_' . $entry['productItem']->id));
+            $safeBase = preg_replace('/[^A-Za-z0-9._-]+/', '_', trim($series)) ?: ('item_' . $entry['productItem']->id);
+            $ext = strtolower(pathinfo($entry['path'], PATHINFO_EXTENSION)) ?: 'pdf';
+            $zipName = $safeBase . '.' . $ext;
+            $suffix = 1;
+            while (isset($usedNames[$zipName])) {
+                $zipName = $safeBase . '_' . $suffix . '.' . $ext;
+                $suffix++;
+            }
+            $usedNames[$zipName] = true;
+            $zip->addFile($fullPath, $zipName);
+        }
+
+        $zip->close();
+
+        $safeOrderNumber = preg_replace('/[^A-Za-z0-9._-]+/', '_', (string) ($Order->order_number ?: ('order_' . $Order->id)));
+        $downloadName = $safeOrderNumber . '_certificates.zip';
+
+        return response()->download($zipPath, $downloadName)->deleteFileAfterSend(true);
+    }
+
     public function MarkNotificationAsRead(DatabaseNotification $notification)
     {
         if ($notification->notifiable_id !== auth()->id()) {
@@ -524,6 +599,7 @@ class DashboardController extends Controller
             'inspection_date' => ['nullable', 'date'],
             'certificate' => ['nullable', 'file'],
             'product_item_code' => ['nullable', 'string', 'max:255'],
+            'status' => ['required', 'string', Rule::in(['In Stock', 'Under Rental', 'Backloaded', 'Lost', 'Scrap'])],
         ])->validateWithBag('updateProductItem');
 
         $data = $request->except(['editing_product_item_id', 'certificate']);
@@ -633,8 +709,18 @@ class DashboardController extends Controller
     }
     public function UpdateOrder(Request $request, Order $Order)
     {
+        $request->validate([
+            'order_number' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::unique('orders', 'order_number')->ignore($Order->id),
+            ],
+            'po_number' => ['nullable', 'string', 'max:255'],
+            'time' => ['nullable', 'string', Rule::in(self::TIME_SLOTS)],
+        ]);
+
         $data = $request->except(['po_reference', 'attachment']);
-        unset($data['order_number']);
 
         if (isset($data['product_ids']) && is_array($data['product_ids'])) {
             $data['product_ids'] = array_values(array_filter($data['product_ids'], fn ($v) => $v !== null && $v !== ''));
@@ -656,6 +742,7 @@ class DashboardController extends Controller
             $filename = Storage::disk('public')->put('/', $file);
             $data['attachment'] = $filename;
         }
+        $data['time'] = $request->input('time') ?: null;
         $Order->update($data);
         return redirect()->back();
     }
@@ -700,37 +787,24 @@ class DashboardController extends Controller
             ->get();
 
         $Order->load([
+            'Company',
             'OrderItems.ProductItem.product',
             'OrderItems.ProductItem.Certificates' => function ($q) {
                 $q->orderByDesc('created_at');
             },
         ]);
 
-        $timesheetRows = $this->buildTimeSheetRowsForOrder($Order);
+        foreach ($Order->OrderItems as $orderItem) {
+            $pricingInfo = $this->calculateOrderItemPricing($orderItem, $Order->Company);
+            $orderItem->unit_price = $pricingInfo['unit_price'];
+            $orderItem->duration_days = $pricingInfo['duration_days'];
+            $orderItem->total_price = $pricingInfo['total_price'];
+        }
 
         return view('dashboard.order', [
             'Order' => $Order,
             'ProductItems' => $ProductItems,
-            'timesheetRows' => $timesheetRows,
         ]);
-    }
-
-    public function TimeSheetPdf(Order $Order)
-    {
-        $Order->load(['Company']);
-        $timesheetRows = $this->buildTimeSheetRowsForOrder($Order);
-
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('dashboard.time_sheet_pdf', [
-            'Order' => $Order,
-            'timesheetRows' => $timesheetRows,
-            'invoiceNumber' => '',
-            'vendor' => '',
-            'todayDate' => now()->format('d F Y'),
-            'clientName' => $Order->Company?->name ?? '',
-        ])->setPaper('a4', 'landscape');
-
-        $safeOrderNumber = $Order->order_number ?: ('order_' . $Order->id);
-        return $pdf->download('time_sheet_' . $safeOrderNumber . '.pdf');
     }
 
     public function DeliveryNote(Order $Order)
@@ -744,33 +818,39 @@ class DashboardController extends Controller
         $products = Product::whereIn('id', $productIds)->get()->keyBy('id');
         $requestedMap = is_array($Order->product_quantities) ? $Order->product_quantities : [];
 
-        $seriesByProductId = [];
-        foreach ($Order->OrderItems as $orderItem) {
-            $productId = $orderItem->productItem?->product_id;
-            $series = $orderItem->productItem?->series_number;
-            if ($productId && $series) {
-                $seriesByProductId[(int) $productId][] = $series;
-            }
-        }
-
         $rows = [];
         $i = 1;
-        foreach ($productIds as $productId) {
-            $productId = (int) $productId;
-            $product = $products->get($productId);
-            if (!$product) {
-                continue;
+
+        if ($Order->OrderItems->isNotEmpty()) {
+            foreach ($Order->OrderItems as $orderItem) {
+                $productItem = $orderItem->productItem;
+                $product = $productItem?->product;
+                $series = $productItem?->series_number;
+
+                $rows[] = [
+                    'no' => $i++,
+                    'product_name' => $product?->name ?? '',
+                    'requested_qty' => 1,
+                    'series' => $series ? [$series] : [],
+                    'remarks' => trim((string) ($orderItem->remarks ?? '')),
+                ];
             }
+        } else {
+            foreach ($productIds as $productId) {
+                $productId = (int) $productId;
+                $product = $products->get($productId);
+                if (!$product) {
+                    continue;
+                }
 
-            $requestedQty = (int) ($requestedMap[$productId] ?? 0);
-            $seriesList = $seriesByProductId[$productId] ?? [];
-
-            $rows[] = [
-                'no' => $i++,
-                'product_name' => $product->name,
-                'requested_qty' => $requestedQty,
-                'series' => $seriesList,
-            ];
+                $rows[] = [
+                    'no' => $i++,
+                    'product_name' => $product->name,
+                    'requested_qty' => (int) ($requestedMap[$productId] ?? 0),
+                    'series' => [],
+                    'remarks' => '',
+                ];
+            }
         }
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('dashboard.delivery_note', [
@@ -783,7 +863,7 @@ class DashboardController extends Controller
 
     public function OrderRequest(Order $Order)
     {
-        $Order->load(['Company']);
+        $Order->load(['Company', 'OrderItems.productItem']);
 
         $requester = null;
         if (!empty($Order->company_employe_id)) {
@@ -806,6 +886,8 @@ class DashboardController extends Controller
             ->pluck('cnt', 'product_id')
             ->toArray();
 
+        $remarksByProductId = $this->remarksByProductIdFromOrder($Order);
+
         $rows = [];
         $i = 1;
         foreach ($productIds as $productId) {
@@ -817,7 +899,7 @@ class DashboardController extends Controller
 
             $requestedQty = (int) ($requestedMap[$productId] ?? 0);
             $availableQty = (int) ($availableByProductId[$productId] ?? 0);
-            $remarks = $availableQty === 0 ? 'Waiting for new shipment' : '';
+            $remarks = implode('; ', $remarksByProductId[$productId] ?? []);
 
             $rows[] = [
                 'no' => $i++,
@@ -884,10 +966,23 @@ class DashboardController extends Controller
             ];
         }
 
-        $siteText = implode(', ', array_values(array_filter(array_unique(array_map(
-            fn ($r) => (string) ($r['product_name'] ?? ''),
-            $rows
-        )))));
+        $siteCodes = [];
+        foreach ($Backload->BackloadItems as $backloadItem) {
+            $site = trim((string) ($backloadItem->OrderItem?->Order?->site_code ?? ''));
+            if ($site !== '') {
+                $siteCodes[$site] = true;
+            }
+        }
+        $siteText = implode(', ', array_keys($siteCodes));
+
+        $poNumbers = [];
+        foreach ($Backload->BackloadItems as $backloadItem) {
+            $poNumber = trim((string) ($backloadItem->OrderItem?->Order?->po_number ?? ''));
+            if ($poNumber !== '') {
+                $poNumbers[$poNumber] = true;
+            }
+        }
+        $poNumbersText = implode(', ', array_keys($poNumbers));
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('dashboard.backload_note', [
             'Backload' => $Backload,
@@ -895,6 +990,7 @@ class DashboardController extends Controller
             'clientCode' => $clientCode,
             'rows' => $rows,
             'siteText' => $siteText,
+            'poNumbersText' => $poNumbersText,
         ]);
 
         return $pdf->download('backload_note_' . $Backload->id . '.pdf');
@@ -1193,27 +1289,57 @@ class DashboardController extends Controller
     // backloads
     public function StoreBackload(Request $request, Company $Company)
     {
+        $request->validate([
+            'backload_number' => ['nullable', 'string', 'max:255', Rule::unique('backloads', 'backload_number')],
+            'time' => ['nullable', 'string', Rule::in(self::TIME_SLOTS)],
+        ]);
+
         $data = $request->all();
         $data['is_active'] = true;
         $data['company_id'] = $Company->id;
+        $data['time'] = $request->input('time') ?: null;
 
-        for ($i = 0; $i < 5; $i++) {
-            $data['backload_number'] = $this->generateBackloadNumberForCompany($Company);
-            try {
-                Backload::create($data);
-                return redirect()->back();
-            } catch (\Illuminate\Database\QueryException $e) {
-                // retry on unique collision
+        $backloadNumber = trim((string) ($data['backload_number'] ?? ''));
+        unset($data['backload_number']);
+
+        if ($backloadNumber === '') {
+            for ($i = 0; $i < 5; $i++) {
+                $data['backload_number'] = $this->generateBackloadNumberForCompany($Company);
+                try {
+                    Backload::create($data);
+                    return redirect()->back();
+                } catch (\Illuminate\Database\QueryException $e) {
+                    // retry on unique collision
+                }
             }
+
+            $data['backload_number'] = $this->generateBackloadNumberForCompany($Company);
+            Backload::create($data);
+
+            return redirect()->back();
         }
 
+        $data['backload_number'] = $backloadNumber;
         Backload::create($data);
+
         return redirect()->back();
     }
     public function UpdateBackload(Request $request, Backload $Backload)
     {
+        $request->validate([
+            'backload_number' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::unique('backloads', 'backload_number')->ignore($Backload->id),
+            ],
+            'time' => ['nullable', 'string', Rule::in(self::TIME_SLOTS)],
+        ]);
+
         $data = $request->all();
-        unset($data['backload_number']);
+        $data['backload_number'] = trim((string) ($data['backload_number'] ?? '')) ?: null;
+        $data['time'] = $request->input('time') ?: null;
+
         $Backload->update($data);
         return redirect()->back();
     }

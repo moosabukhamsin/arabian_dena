@@ -15,6 +15,10 @@ class ProductItemStatusService
      */
     public function updateRentalStatus(ProductItem $productItem): void
     {
+        if ($productItem->hasTerminalStatus()) {
+            return;
+        }
+
         // Get all order items for this product item from active orders
         $orderItems = $productItem->orderItems()
             ->with('order.company')

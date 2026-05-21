@@ -92,7 +92,7 @@
 
         <table class="meta">
             <tr>
-                <td class="label">DOC.NO:</td>
+                <td class="label">ORDER REQUEST NUMBER:</td>
                 <td class="value">{{ $Order->order_number }}</td>
                 <td class="label">DATE</td>
                 <td class="value">{{ $Order->created_at ? $Order->created_at->format('d F Y') : '' }}</td>

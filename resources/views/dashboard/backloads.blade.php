@@ -83,7 +83,7 @@
                     <div class="modal-body">
                         <div class="form-group">
                             <label class="form-label">Backload Number</label>
-                            <input type="text" class="form-control" value="{{ $backload->backload_number ?? ('Backload: ' . $backload->id) }}" disabled>
+                            <input type="text" name="backload_number" class="form-control" value="{{ $backload->backload_number ?? '' }}" placeholder="Enter backload number">
                         </div>
                         <div class="form-group">
                             <label class="form-label">Company</label>
@@ -98,6 +98,15 @@
                         <div class="form-group">
                             <label class="form-label">Date</label>
                             <input type="date" name="date" class="form-control" value="{{ $backload->date }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Time</label>
+                            <select name="time" class="form-control">
+                                <option value="">Select time</option>
+                                <option value="Morning" {{ ($backload->time ?? '') === 'Morning' ? 'selected' : '' }}>Morning</option>
+                                <option value="Afternoon" {{ ($backload->time ?? '') === 'Afternoon' ? 'selected' : '' }}>Afternoon</option>
+                                <option value="Evening" {{ ($backload->time ?? '') === 'Evening' ? 'selected' : '' }}>Evening</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Address</label>
@@ -118,6 +127,10 @@
                         <div class="form-group">
                             <label class="form-label">Driver ID Number</label>
                             <input type="text" name="driver_id_number" class="form-control" value="{{ $backload->driver_id_number }}" placeholder="Enter driver ID number">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Remarks</label>
+                            <input type="text" name="remarks" class="form-control" value="{{ $backload->remarks }}" placeholder="Enter remarks">
                         </div>
                         <div class="form-group">
                             <label class="form-label">Attachment</label>

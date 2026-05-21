@@ -85,10 +85,10 @@
                 <th style="width: 6%;">Site</th>
                 <th style="width: 4%;">S.No.</th>
                 <th style="width: 12%;">Description</th>
-                <th style="width: 7%;">Remarks</th>
                 <th style="width: 7%;">Tracking Number</th>
                 <th style="width: 7%;">Invoice Number</th>
                 <th style="width: 7%;">P.O. Reference</th>
+                <th style="width: 7%;">PO Number</th>
                 <th style="width: 6%;">Delivery Note</th>
                 <th style="width: 6%;">Delivery Date</th>
                 <th style="width: 6%;">Delivery Time</th>
@@ -97,6 +97,7 @@
                 <th style="width: 5%;">Time BLKD</th>
                 <th style="width: 6%;">Rental Status</th>
                 <th style="width: 6%;">Rental Period</th>
+                <th style="width: 7%;">Remarks</th>
                 <th style="width: 7%;">Unit Rental Cost SAR</th>
                 <th style="width: 7%;">Total Rental Cost SAR</th>
             </tr>
@@ -109,10 +110,10 @@
                     <td class="center">{{ $row['site'] }}</td>
                     <td class="center">{{ $row['sno'] }}</td>
                     <td>{{ $row['description'] }}</td>
-                    <td>{{ $row['remarks'] }}</td>
                     <td class="center">{{ $row['tracking_number'] }}</td>
                     <td class="center">{{ $row['invoice_number'] }}</td>
                     <td class="center">{{ $row['po_reference'] }}</td>
+                    <td class="center">{{ $row['po_number'] ?? '' }}</td>
                     <td class="center">{{ $row['delivery_note'] }}</td>
                     <td class="center">{{ $row['delivery_date'] }}</td>
                     <td class="center">{{ $row['delivery_time'] }}</td>
@@ -122,12 +123,13 @@
                     @php $st = strtoupper(trim((string) ($row['rental_status'] ?? ''))); @endphp
                     <td class="{{ $st === 'RETURNED' ? 'status-returned' : 'status-under' }}">{{ $row['rental_status'] }}</td>
                     <td class="center">{{ $row['rental_period'] }}</td>
+                    <td>{{ $row['remarks'] }}</td>
                     <td class="right">{{ $row['unit_rental_cost'] !== '' ? ('SAR ' . $row['unit_rental_cost']) : '' }}</td>
                     <td class="right">{{ $row['total_rental_cost'] !== '' ? ('SAR ' . $row['total_rental_cost']) : '' }}</td>
                 </tr>
             @endforeach
             <tr>
-                <td colspan="18" class="total-label">Total Rental</td>
+                <td colspan="19" class="total-label">Total Rental</td>
                 <td class="total-amount right">{{ 'SAR ' . $totalRental }}</td>
             </tr>
         </tbody>

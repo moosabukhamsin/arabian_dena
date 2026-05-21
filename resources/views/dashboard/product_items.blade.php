@@ -95,6 +95,14 @@
                                                             <span class="badge bg-info">
                                                                 <i data-feather="package"></i> Backloaded
                                                             </span>
+                                                        @elseif($productItem->status === 'Lost')
+                                                            <span class="badge bg-danger">
+                                                                <i data-feather="alert-circle"></i> Lost
+                                                            </span>
+                                                        @elseif($productItem->status === 'Scrap')
+                                                            <span class="badge bg-dark">
+                                                                <i data-feather="trash-2"></i> Scrap
+                                                            </span>
                                                         @else
                                                             <span class="badge bg-secondary">
                                                                 <i data-feather="help-circle"></i> {{ ucfirst($productItem->status ?? 'Unknown') }}
@@ -229,11 +237,21 @@
                                     </div>
                                     <div class="form-group">
                                         <label class="form-label">Status</label>
-                                        <select name="status" class="form-control" required>
-                                            <option value="In Stock" {{ $productItem->status === 'In Stock' ? 'selected' : '' }}>In Stock</option>
-                                            <option value="Under Rental" {{ $productItem->status === 'Under Rental' ? 'selected' : '' }}>Under Rental</option>
-                                            <option value="Backloaded" {{ $productItem->status === 'Backloaded' ? 'selected' : '' }}>Backloaded</option>
+                                        @php
+                                            $editStatus = old('editing_product_item_id') == $productItem->id ? old('status') : $productItem->status;
+                                        @endphp
+                                        <select name="status" class="form-control @if(old('editing_product_item_id') == $productItem->id && $errors->updateProductItem->has('status')) is-invalid @endif" required>
+                                            <option value="In Stock" {{ $editStatus === 'In Stock' ? 'selected' : '' }}>In Stock</option>
+                                            <option value="Under Rental" {{ $editStatus === 'Under Rental' ? 'selected' : '' }}>Under Rental</option>
+                                            <option value="Backloaded" {{ $editStatus === 'Backloaded' ? 'selected' : '' }}>Backloaded</option>
+                                            <option value="Lost" {{ $editStatus === 'Lost' ? 'selected' : '' }}>Lost</option>
+                                            <option value="Scrap" {{ $editStatus === 'Scrap' ? 'selected' : '' }}>Scrap</option>
                                         </select>
+                                        @if(old('editing_product_item_id') == $productItem->id && $errors->updateProductItem->has('status'))
+                                            <span class="invalid-feedback d-block" role="alert">
+                                                <strong>{{ $errors->updateProductItem->first('status') }}</strong>
+                                            </span>
+                                        @endif
                                         <small class="form-text text-muted">Status is automatically updated based on rental activity. Manual changes may be overridden.</small>
                                     </div>
                                     <div class="form-group">

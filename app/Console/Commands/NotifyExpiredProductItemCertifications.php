@@ -39,6 +39,7 @@ class NotifyExpiredProductItemCertifications extends Command
 
         $expiredItems = ProductItem::with('product')
             ->where('is_active', true)
+            ->withoutTerminalStatus()
             ->whereNotNull('inspection_date')
             ->whereNull('certification_expired_notified_at')
             ->get()

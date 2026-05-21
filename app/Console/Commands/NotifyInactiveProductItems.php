@@ -52,6 +52,7 @@ class NotifyInactiveProductItems extends Command
                 }
             )
             ->where('product_items.is_active', true)
+            ->withoutTerminalStatus()
             ->whereNull('product_items.inactive_90d_notified_at')
             ->where(function ($query) use ($thresholdDate) {
                 $query

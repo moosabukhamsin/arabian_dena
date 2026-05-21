@@ -138,10 +138,10 @@
                     <th>Site</th>
                     <th>S.No.</th>
                     <th>Description</th>
-                    <th>Remarks</th>
                     <th>Tracking Number</th>
                     <th>Invoice Number</th>
                     <th>P.O. Reference</th>
+                    <th>PO Number</th>
                     <th>Delivery Note</th>
                     <th>Delivery Date</th>
                     <th>Delivery Time</th>
@@ -150,6 +150,7 @@
                     <th>Time BLKD</th>
                     <th>Rental Status</th>
                     <th>Rental Period</th>
+                    <th>Remarks</th>
                     <th>Unit Rental Cost SAR</th>
                     <th>Total Rental Cost SAR</th>
                 </tr>
@@ -164,10 +165,10 @@
                         <td>{{ $row['site'] }}</td>
                         <td>{{ $row['sno'] }}</td>
                         <td>{{ $row['description'] }}</td>
-                        <td>{{ $row['remarks'] }}</td>
                         <td>{{ $row['tracking_number'] }}</td>
                         <td>{{ $row['invoice_number'] }}</td>
                         <td>{{ $row['po_reference'] }}</td>
+                        <td>{{ $row['po_number'] ?? '' }}</td>
                         <td>{{ $row['delivery_note'] }}</td>
                         <td>{{ $row['delivery_date'] }}</td>
                         <td>{{ $row['delivery_time'] }}</td>
@@ -176,12 +177,13 @@
                         <td>{{ $row['time_blkd'] }}</td>
                         <td>{{ $row['rental_status'] }}</td>
                         <td>{{ $row['rental_period'] }}</td>
+                        <td>{{ $row['remarks'] }}</td>
                         <td>{{ $row['unit_rental_cost'] !== '' ? ('SAR ' . $row['unit_rental_cost']) : '' }}</td>
                         <td>{{ $row['total_rental_cost'] !== '' ? ('SAR ' . $row['total_rental_cost']) : '' }}</td>
                     </tr>
                 @endforeach
                 <tr>
-                    @for ($c = 0; $c < 17; $c++)
+                    @for ($c = 0; $c < 18; $c++)
                         <td></td>
                     @endfor
                     <td style="text-align: right; font-weight: bold;">Total Rental</td>

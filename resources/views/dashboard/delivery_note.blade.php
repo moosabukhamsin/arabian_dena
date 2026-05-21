@@ -27,9 +27,10 @@
         .items th, .items td { border: 1px solid #333; padding: 5px 6px; }
         .items th { background: #e9ecef; text-align: center; }
         .items td.num { width: 6%; text-align: center; }
-        .items td.qty { width: 10%; text-align: center; }
-        .items td.desc { width: 54%; }
-        .items td.track { width: 30%; }
+        .items td.qty { width: 8%; text-align: center; }
+        .items td.desc { width: 36%; }
+        .items td.track { width: 22%; }
+        .items td.remarks { width: 28%; }
 
         .footnote { font-size: 8px; margin-top: 6px; }
 
@@ -68,7 +69,7 @@
             <tr>
                 <th>Delivered To</th>
                 <td>{{ $Order->Company->name ?? '' }}</td>
-                <th>DN#</th>
+                <th>Order Request Number</th>
                 <td>{{ $Order->order_number ?? '' }}</td>
             </tr>
             <tr>
@@ -92,8 +93,8 @@
             <tr>
                 <th>Date</th>
                 <td>{{ $Order->created_at ? $Order->created_at->format('d F Y') : '' }}</td>
-                <th></th>
-                <td></td>
+                <th>PO Number</th>
+                <td>{{ $Order->po_number ?? '' }}</td>
             </tr>
         </table>
 
@@ -104,6 +105,7 @@
                     <th>Description</th>
                     <th>Qty/Unit</th>
                     <th>Tracking #</th>
+                    <th>Remarks</th>
                 </tr>
             </thead>
             <tbody>
@@ -120,6 +122,7 @@
                                 {{ implode(', ', $series) }}
                             @endif
                         </td>
+                        <td class="remarks">{{ $row['remarks'] ?? '' }}</td>
                     </tr>
                 @endforeach
                 <tr>
@@ -127,6 +130,7 @@
                     <td class="desc" style="text-align:center; font-weight:bold;">TOTAL</td>
                     <td class="qty" style="color:#c00; font-weight:bold;">{{ $totalQty }}</td>
                     <td class="track"></td>
+                    <td class="remarks"></td>
                 </tr>
             </tbody>
         </table>
@@ -144,9 +148,7 @@
             </tr>
             <tr>
                 <td class="label">Vehicle</td>
-                <td>{{ $Order->truck_number ?? '' }}</td>
-                <td class="label">Remarks</td>
-                <td></td>
+                <td colspan="3">{{ $Order->truck_number ?? '' }}</td>
             </tr>
         </table>
 
