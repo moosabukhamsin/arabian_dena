@@ -18,11 +18,13 @@
                             <div class="card-header">
                                 <h3 class="card-title">Categories</h3>
                                 <div class="card-options">
+                                    @can('modify-inventory')
                                     <div class="btn-group">
                                         <button class="btn btn-primary dropdown-toggle" data-bs-toggle="modal" data-bs-target="#largemodal">
                                             Create Category
                                         </button>
                                     </div>
+                                    @endcan
                                 </div>
                             </div>
                             <div class="card-body">
@@ -67,12 +69,16 @@
                                                     <td>{{ $activeProducts->count() }}</td>
 
                                                     <td>
+                                                        @can('modify-inventory')
                                                         <button class="btn btn-sm btn-primary me-1" data-bs-toggle="modal" data-bs-target="#editCategoryModal{{ $category->id }}">
                                                             <span class="fe fe-edit"></span>
                                                         </button>
+                                                        @can('delete-records')
                                                         <a href="{{ route('dashboard.delete_category', $category) }}" class="btn btn-sm btn-danger">
                                                             <span class="fe fe-trash-2"></span>
                                                         </a>
+                                                        @endcan
+                                                        @endcan
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -90,6 +96,7 @@
         </div>
     </div>
     <!--app-content close-->
+    @can('modify-inventory')
     <!-- Modal -->
     <div class="modal fade" id="largemodal" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-lg " role="document">
@@ -162,6 +169,7 @@
         </div>
     </div>
     @endforeach
+    @endcan
 
 @push('scripts')
 <script>

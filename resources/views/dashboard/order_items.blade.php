@@ -64,11 +64,13 @@
                                                         <button type="button" class="btn btn-sm btn-primary me-1" data-bs-toggle="modal" data-bs-target="#editOrderItemModal{{ $orderItem->id }}">
                                                             <span class="fe fe-edit"></span>
                                                         </button>
+                                                        @can('delete-records')
                                                         <a href="{{ route('dashboard.delete_order_item', $orderItem->id) }}" >
                                                             <button id="bDel" type="button" class="btn  btn-sm btn-danger">
                                                                 <span class="fe fe-trash-2"> </span>
                                                             </button>
                                                         </a>
+                                                        @endcan
                                                     </td>
                                                 </tr>
                                             @empty

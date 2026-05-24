@@ -30,9 +30,11 @@
                         </ul>
                     </div>
                 @endif
+                @can('modify-inventory')
                 <form id="add-combination-form" action="{{ route('dashboard.store_order_items', $Order) }}" method="POST">
                     @csrf
                 </form>
+                @endcan
                 <!-- ROW-2 -->
                 <!-- Row -->
                 <div class="row row-sm">
@@ -41,7 +43,9 @@
                             <div class="card-header">
                                 <h3 class="card-title">Product Items</h3>
                                 <div class="card-options">
+                                    @can('modify-inventory')
                                     <button type="submit" form="add-combination-form" class="btn btn-primary">add as combination</button>
+                                    @endcan
                                 </div>
 
                             </div>
@@ -50,18 +54,23 @@
                                     <table id="file-datatable" class="table table-bordered text-nowrap key-buttons border-bottom">
                                         <thead>
                                             <tr>
+                                                @can('modify-inventory')
                                                 <th class="border-bottom-0"></th>
+                                                @endcan
                                                 <th class="border-bottom-0">ID</th>
                                                 <th class="border-bottom-0">Product Name</th>
                                                 <th class="border-bottom-0">Series Number</th>
                                                 <th class="border-bottom-0">Certificate</th>
+                                                @can('modify-inventory')
                                                 <th class="border-bottom-0">Action</th>
+                                                @endcan
 
                                             </tr>
                                         </thead>
                                         <tbody>
                                             @foreach ($ProductItems as $ProductItem)
                                                 <tr>
+                                                    @can('modify-inventory')
                                                     <td>
                                                         <input
                                                             type="checkbox"
@@ -70,6 +79,7 @@
                                                             value="{{ $ProductItem->id }}"
                                                         >
                                                     </td>
+                                                    @endcan
                                                     <td>{{ $ProductItem->id }} - @if($ProductItem->Product->image_url)<img src="{{ $ProductItem->Product->image_url }}" alt="Product Image" width="25">@endif</td>
                                                     <td>{{ $ProductItem->product->name }}</td>
                                                     <td>{{ $ProductItem->series_number }}</td>
@@ -87,27 +97,15 @@
                                                             <span class="text-muted">—</span>
                                                         @endif
                                                     </td>
+                                                    @can('modify-inventory')
                                                     <td class=" table_input">
                                                         <form action="{{ route('dashboard.store_order_item',['Order' => $Order,'ProductItem' => $ProductItem]) }}" method="POST" >
                                                             <input type="text" name="product_item_id" value="{{ $ProductItem->id }}" hidden>
                                                             @csrf
-                                                            {{-- <div class="form-group">
-                                                                <label class="form-label">daily price</label>
-                                                                <input type="text" name="daily_price" class="form-control" placeholder="daily price" value="{{$ProductItem->Product->daily_price}}">
-                                                            </div>
-                                                            <div class="form-group">
-                                                                <label class="form-label">weekly price</label>
-                                                                <input type="text" name="weekly_price" class="form-control"  placeholder="weekly price" value="{{$ProductItem->Product->weekly_price}}">
-                                                            </div>
-                                                            <div class="form-group">
-                                                                <label class="form-label">monthly price</label>
-                                                                <input type="text" name="monthly_price" class="form-control"  placeholder="monthly price" value="{{$ProductItem->Product->monthly_price}}">
-                                                            </div> --}}
-
-
                                                             <input type="submit" class="btn btn-primary" value="Add"/>
                                                         </form>
                                                     </td>
+                                                    @endcan
 
                                                 </tr>
                                             @endforeach
@@ -180,27 +178,18 @@
                                                     <td>{{ $OrderItem->duration_days ?? 0 }} days</td>
                                                     <td>{{ $OrderItem->remarks ?? '' }}</td>
                                                     <td class=" table_input">
-                                                        {{-- @if (!$OrderItem->end_date )
-                                                            <form action="{{ route('dashboard.update_order_item',$OrderItem) }}" method="POST" >
-                                                                @csrf
-                                                                <div class="form-group">
-                                                                    <label class="form-label">set end date</label>
-                                                                    <input type="date" name="end_date" class="form-control" required>
-                                                                </div>
-
-
-                                                                <input type="submit" class="btn btn-primary" value="submit"/>
-                                                            </form>
-                                                        @endif --}}
-
+                                                        @can('modify-inventory')
                                                         <button type="button" class="btn btn-sm btn-primary me-1" data-bs-toggle="modal" data-bs-target="#editOrderItemRemarksModal{{ $OrderItem->id }}">
                                                             <span class="fe fe-edit"></span>
                                                         </button>
+                                                        @can('delete-records')
                                                         <a href="{{ route('dashboard.delete_order_item', $OrderItem->id) }}" >
                                                             <button id="bDel" type="button" class="btn  btn-sm btn-danger">
                                                                 <span class="fe fe-trash-2"> </span>
                                                             </button>
                                                         </a>
+                                                        @endcan
+                                                        @endcan
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -213,6 +202,7 @@
                 </div>
 
                 <!-- Edit Order Item Remarks Modals -->
+                @can('modify-inventory')
                 @foreach ($Order->OrderItems as $OrderItem)
                     <div class="modal fade" id="editOrderItemRemarksModal{{ $OrderItem->id }}" tabindex="-1" role="dialog" aria-hidden="true">
                         <div class="modal-dialog modal-lg" role="document">
@@ -240,6 +230,7 @@
                         </div>
                     </div>
                 @endforeach
+                @endcan
                 <!-- End Row -->
                 <!-- ROW-2 END -->
             </div>

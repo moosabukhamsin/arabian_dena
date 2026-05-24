@@ -9,9 +9,11 @@
                 <div class="page-header">
                     <h1 class="page-title">Product Items</h1>
                     <div class="page-options">
+                        @can('modify-inventory')
                         <button class="btn btn-primary dropdown-toggle" data-bs-toggle="modal" data-bs-target="#addProductItemModal">
                             Add Product Item
                         </button>
+                        @endcan
                     </div>
                 </div>
                 <!-- PAGE-HEADER END -->
@@ -113,14 +115,18 @@
                                                         <a href="{{ route('dashboard.product_item', $productItem->id) }}" class="btn btn-sm btn-info">
                                                             <i data-feather="eye"></i> View
                                                         </a>
+                                                        @can('modify-inventory')
                                                         <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editProductItemModal{{ $productItem->id }}">
                                                             <i data-feather="edit"></i> Edit
                                                         </button>
+                                                        @can('delete-records')
                                                         <a href="{{ route('dashboard.delete_product_item', $productItem->id) }}"
                                                            class="btn btn-sm btn-danger"
                                                            onclick="return confirm('Are you sure you want to delete this product item?')">
                                                             <i data-feather="trash-2"></i> Delete
                                                         </a>
+                                                        @endcan
+                                                        @endcan
                                                     </td>
                                                 </tr>
                                             @empty
@@ -138,6 +144,7 @@
                 <!-- End Row -->
 
                 <!-- Add Product Item Modal -->
+                @can('modify-inventory')
                 <div class="modal fade" id="addProductItemModal" tabindex="-1" role="dialog">
                     <div class="modal-dialog modal-lg" role="document">
                         <div class="modal-content">
@@ -287,6 +294,7 @@
                     </div>
                 </div>
                 @endforeach
+                @endcan
 
             </div>
             <!-- CONTAINER END -->
@@ -294,6 +302,7 @@
     </div>
     <!--app-content close-->
 
+    @can('modify-inventory')
     <script>
         // Handle add product item form submission as a normal POST
         document.getElementById('addProductItemForm').addEventListener('submit', function(e) {
@@ -324,5 +333,6 @@
             @endif
         });
     </script>
+    @endcan
 
 @endsection

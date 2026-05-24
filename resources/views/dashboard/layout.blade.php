@@ -191,11 +191,13 @@
                                         class="side-menu__icon fe fe-shopping-cart"></i><span
                                         class="side-menu__label">Orders</span></a>
                             </li>
+                            @can('access-timesheets')
                             <li class="slide">
                                 <a class="side-menu__item has-link" data-bs-toggle="slide" href="{{ route('dashboard.order_items') }}"><i
                                         class="side-menu__icon fe fe-shopping-bag"></i><span
                                         class="side-menu__label">Timesheets</span></a>
                             </li>
+                            @endcan
                             <li class="slide">
                                 <a class="side-menu__item has-link" data-bs-toggle="slide" href="{{ route('dashboard.backloads') }}"><i
                                         class="side-menu__icon fe fe-truck"></i><span
@@ -206,11 +208,13 @@
                                         class="side-menu__icon fe fe-users"></i><span
                                         class="side-menu__label">Companies</span></a>
                             </li>
+                            @can('access-users')
                             <li class="slide">
                                 <a class="side-menu__item has-link" data-bs-toggle="slide" href="{{ route('dashboard.users') }}"><i
                                         class="side-menu__icon fe fe-user"></i><span
                                         class="side-menu__label">Users</span></a>
                             </li>
+                            @endcan
 
                         </ul>
                         <div class="slide-right" id="slide-right"><svg xmlns="http://www.w3.org/2000/svg" fill="#7b8191"

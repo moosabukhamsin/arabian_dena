@@ -56,6 +56,7 @@
 
 
 
+                                                            @can('modify-inventory')
                                                             <form action="{{ route('dashboard.store_backload_item', $Backload) }}" method="POST">
                                                                 @csrf
                                                                 <input type="text" name="order_item_id" value="{{ $OrderItem->id }}" hidden>
@@ -63,6 +64,7 @@
                                                                     <span class="fe fe-plus"> </span>
                                                                 </button>
                                                             </form>
+                                                            @endcan
 
 
                                                     </td>
@@ -111,11 +113,15 @@
                                                     <td>
 
 
+                                                        @can('modify-inventory')
+                                                        @can('delete-records')
                                                         <a href="{{ route('dashboard.delete_backload_item', $BackloadItem->id) }}" >
                                                             <button id="bDel" type="button" class="btn  btn-sm btn-danger">
                                                                 <span class="fe fe-trash-2"> </span>
                                                             </button>
                                                         </a>
+                                                        @endcan
+                                                        @endcan
                                                     </td>
                                                 </tr>
                                             @endforeach

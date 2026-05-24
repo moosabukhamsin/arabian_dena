@@ -16,6 +16,7 @@ use App\Models\BackloadItem;
 use App\Models\ProductItemCertificate;
 use App\Models\CompanyPriceList;
 use App\Models\User;
+use App\Enums\UserRole;
 use App\Services\ProductItemStatusService;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
@@ -285,7 +286,29 @@ class DashboardController extends Controller
     {
         $users = User::orderBy('name')->orderBy('id')->get();
 
-        return view('dashboard.users', ['users' => $users]);
+        return view('dashboard.users', [
+            'users' => $users,
+            'roles' => UserRole::options(),
+        ]);
+    }
+
+    public function UpdateUserRole(Request $request, User $User)
+    {
+        $validated = $request->validate([
+            'role' => ['required', Rule::enum(UserRole::class)],
+        ]);
+
+        $newRole = $validated['role'] instanceof UserRole
+            ? $validated['role']
+            : UserRole::from($validated['role']);
+
+        if ($User->role === $newRole) {
+            return redirect()->route('dashboard.users');
+        }
+
+        $User->update(['role' => $newRole]);
+
+        return redirect()->route('dashboard.users')->with('success', 'User role updated successfully.');
     }
 
     public function Companies()

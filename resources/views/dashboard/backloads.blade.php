@@ -40,15 +40,21 @@
                                                     <td>{{ $backload->address }}</td>
                                                     <td>{{ $backload->BackloadItems->count() }}</td>
                                                     <td>
+                                                        @can('modify-inventory')
                                                         <button class="btn btn-sm btn-primary me-1" data-bs-toggle="modal" data-bs-target="#editBackloadModal{{ $backload->id }}">
                                                             <span class="fe fe-edit"></span>
                                                         </button>
+                                                        @endcan
                                                         <a href="{{ route('dashboard.backload', $backload->id) }}" class="btn btn-sm btn-info me-1">
                                                             <span class="fe fe-eye"></span>
                                                         </a>
+                                                        @can('modify-inventory')
+                                                        @can('delete-records')
                                                         <a href="{{ route('dashboard.delete_backload', $backload->id) }}" class="btn btn-sm btn-danger">
                                                             <span class="fe fe-trash-2"></span>
                                                         </a>
+                                                        @endcan
+                                                        @endcan
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -67,6 +73,7 @@
     </div>
     <!--app-content close-->
 
+    @can('modify-inventory')
     <!-- Edit Back Load Modals -->
     @foreach ($backloads as $backload)
     <div class="modal fade" id="editBackloadModal{{ $backload->id }}" tabindex="-1" role="dialog">
@@ -149,6 +156,7 @@
         </div>
     </div>
     @endforeach
+    @endcan
 
     <script>
     </script>

@@ -18,11 +18,13 @@
                             <div class="card-header">
                                 <h3 class="card-title">Product Items</h3>
                                 <div class="card-options">
+                                    @can('modify-inventory')
                                     <div class="btn-group">
                                         <button class="btn btn-primary dropdown-toggle" data-bs-toggle="modal" data-bs-target="#largemodal">
                                             Create Product Item
                                         </button>
                                     </div>
+                                    @endcan
                                 </div>
                             </div>
                             <div class="card-body">
@@ -94,17 +96,23 @@
                                                         @endif
                                                     </td>
                                                     <td>
+                                                        @can('modify-inventory')
                                                         <button class="btn btn-sm btn-primary me-1" data-bs-toggle="modal" data-bs-target="#editProductItemModal{{ $ProductItem->id }}">
                                                             <span class="fe fe-edit"></span> Edit
                                                         </button>
+                                                        @endcan
                                                         <a href="{{ route('dashboard.product_item', $ProductItem) }}" class="btn btn-sm btn-info me-1">
                                                             <i data-feather="eye"></i> View
                                                         </a>
+                                                        @can('modify-inventory')
+                                                        @can('delete-records')
                                                         <a href="{{ route('dashboard.delete_product_item', $ProductItem) }}"
                                                            class="btn btn-sm btn-danger"
                                                            onclick="return confirm('Are you sure you want to delete this product item?')">
                                                             <i data-feather="trash-2"></i> Delete
                                                         </a>
+                                                        @endcan
+                                                        @endcan
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -123,6 +131,7 @@
     </div>
 
     <!--app-content close-->
+    @can('modify-inventory')
     <!-- Modal -->
     <div class="modal fade" id="largemodal" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-lg " role="document">
@@ -218,4 +227,5 @@
         </div>
     </div>
     @endforeach
+    @endcan
 @endsection

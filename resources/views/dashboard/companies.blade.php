@@ -18,11 +18,13 @@
                             <div class="card-header">
                                 <h3 class="card-title">Companies</h3>
                                 <div class="card-options">
+                                    @can('create-company')
                                     <div class="btn-group">
                                         <button class="btn btn-primary dropdown-toggle" data-bs-toggle="modal" data-bs-target="#largemodal">
                                             Create Company
                                         </button>
                                     </div>
+                                    @endcan
                                 </div>
                             </div>
                             <div class="card-body">
@@ -59,12 +61,16 @@
                                                         <a href="{{ route('dashboard.company', $company) }}" class="btn btn-sm btn-info me-1">
                                                             <span class="fe fe-eye"></span>
                                                         </a>
+                                                        @can('access-company-pricing')
                                                         <a href="{{ route('dashboard.company_price_lists', $company) }}" class="btn btn-sm btn-success me-1">
                                                             <span class="fe fe-dollar-sign"></span>
                                                         </a>
+                                                        @endcan
+                                                        @can('delete-records')
                                                         <a href="{{ route('dashboard.delete_company', $company) }}" class="btn btn-sm btn-danger">
                                                             <span class="fe fe-trash-2"></span>
                                                         </a>
+                                                        @endcan
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -82,6 +88,7 @@
         </div>
     </div>
     <!--app-content close-->
+    @can('create-company')
     <!-- Modal -->
     <div class="modal fade" id="largemodal" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-lg " role="document">
@@ -132,6 +139,7 @@
             </div>
         </div>
     </div>
+    @endcan
 
     <!-- Edit Company Modals -->
     @foreach ($companies as $company)
@@ -163,6 +171,7 @@
                             <label class="form-label">Address</label>
                             <textarea name="address" class="form-control" rows="2" placeholder="Address">{{ $company->address }}</textarea>
                         </div>
+                        @can('access-company-pricing')
                         <div class="form-group">
                             <label class="form-label">Pricing Type</label>
                             <select name="pricing_type" class="form-control" required>
@@ -170,6 +179,9 @@
                                 <option value="daily_weekly_monthly" {{ $company->pricing_type === 'daily_weekly_monthly' ? 'selected' : '' }}>Daily, Weekly & Monthly</option>
                             </select>
                         </div>
+                        @else
+                        <input type="hidden" name="pricing_type" value="{{ $company->pricing_type }}">
+                        @endcan
                         <div class="form-group">
                             <label class="form-label">Logo</label>
                             <input type="file" name="image" class="form-control">

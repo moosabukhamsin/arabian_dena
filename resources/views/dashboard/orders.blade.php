@@ -50,11 +50,15 @@
                                                                 <span class="fe fe-eye"> </span> View
                                                             </button>
                                                         </a>
+                                                        @can('modify-inventory')
+                                                        @can('delete-records')
                                                         <a href="{{ route('dashboard.delete_order', $order->id) }}" >
                                                             <button id="bDel" type="button" class="btn  btn-sm btn-danger">
                                                                 <span class="fe fe-trash-2"> </span> Delete
                                                             </button>
                                                         </a>
+                                                        @endcan
+                                                        @endcan
                                                     </td>
 
                                                 </tr>

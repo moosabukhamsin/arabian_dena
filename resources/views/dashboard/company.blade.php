@@ -73,11 +73,13 @@
                             <div class="card-header">
                                 <h3 class="card-title">Orders</h3>
                                 <div class="card-options">
+                                    @can('modify-inventory')
                                     <div class="btn-group">
                                         <button class="btn btn-primary dropdown-toggle" data-bs-toggle="modal" data-bs-target="#ordermodal">
                                             Add Order
                                         </button>
                                     </div>
+                                    @endcan
                                 </div>
                             </div>
                             <div class="card-body">
@@ -101,19 +103,25 @@
                                                     <td>{{ $order->site_code }}</td>
                                                     <td>{{ $order->OrderItems->count() }}</td>
                                                     <td>
+                                                        @can('modify-inventory')
                                                         <button class="btn btn-sm btn-primary me-1" data-bs-toggle="modal" data-bs-target="#editOrderModal{{ $order->id }}">
                                                             <span class="fe fe-edit"></span> Edit
                                                         </button>
+                                                        @endcan
                                                         <a href="{{ route('dashboard.order', $order->id) }}" >
                                                             <button id="bView" type="button" class="btn btn-sm btn-info me-1">
                                                                 <span class="fe fe-eye"> </span> View
                                                             </button>
                                                         </a>
+                                                        @can('modify-inventory')
+                                                        @can('delete-records')
                                                         <a href="{{ route('dashboard.delete_order', $order->id) }}" >
                                                             <button id="bDel" type="button" class="btn  btn-sm btn-danger">
                                                                 <span class="fe fe-trash-2"> </span> Delete
                                                             </button>
                                                         </a>
+                                                        @endcan
+                                                        @endcan
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -132,11 +140,13 @@
                             <div class="card-header">
                                 <h3 class="card-title">Backloads</h3>
                                 <div class="card-options">
+                                    @can('modify-inventory')
                                     <div class="btn-group">
                                         <button class="btn btn-primary dropdown-toggle" data-bs-toggle="modal" data-bs-target="#backloadmodal">
                                             Add Backload
                                         </button>
                                     </div>
+                                    @endcan
                                 </div>
                             </div>
                             <div class="card-body">
@@ -161,15 +171,19 @@
                                                     <td>{{ $Backload->BackloadItems->count() }}</td>
                                                     <td>
                                                         <a href="{{ route('dashboard.backload', $Backload->id) }}" >
-                                                            <button id="bEdit" type="button" class="btn btn-sm btn-primary">
-                                                                <span class="fe fe-edit"> </span>
+                                                            <button id="bView" type="button" class="btn btn-sm btn-info">
+                                                                <span class="fe fe-eye"> </span> View
                                                             </button>
                                                         </a>
+                                                        @can('modify-inventory')
+                                                        @can('delete-records')
                                                         <a href="{{ route('dashboard.delete_backload', $Backload->id) }}" >
                                                             <button id="bDel" type="button" class="btn  btn-sm btn-danger">
-                                                                <span class="fe fe-trash-2"> </span>
+                                                                <span class="fe fe-trash-2"> </span> Delete
                                                             </button>
                                                         </a>
+                                                        @endcan
+                                                        @endcan
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -222,6 +236,7 @@
             </div>
         </div>
     </div>
+    @can('modify-inventory')
     <div class="modal fade" id="ordermodal" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-lg " role="document">
             <div class="modal-content">
@@ -503,6 +518,7 @@
         </div>
     </div>
     @endforeach
+    @endcan
 @endsection
 
 @push('scripts')
