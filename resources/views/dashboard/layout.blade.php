@@ -127,6 +127,9 @@
                                         <span class="text-muted">{{ Auth::user()->name ?? 'User' }}</span>
                                         <small class="text-muted d-block">{{ Auth::user()->email ?? '' }}</small>
                                     </div>
+                                    <a href="{{ route('profile') }}" class="dropdown-item">
+                                        <i class="fe fe-user me-2"></i> My Profile
+                                    </a>
                                     <form method="POST" action="{{ route('logout') }}">
                                         @csrf
                                         <button type="submit" class="dropdown-item">
@@ -202,6 +205,11 @@
                                 <a class="side-menu__item has-link" data-bs-toggle="slide" href="{{ route('dashboard.companies') }}"><i
                                         class="side-menu__icon fe fe-users"></i><span
                                         class="side-menu__label">Companies</span></a>
+                            </li>
+                            <li class="slide">
+                                <a class="side-menu__item has-link" data-bs-toggle="slide" href="{{ route('dashboard.users') }}"><i
+                                        class="side-menu__icon fe fe-user"></i><span
+                                        class="side-menu__label">Users</span></a>
                             </li>
 
                         </ul>

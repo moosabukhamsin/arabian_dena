@@ -6,15 +6,15 @@
     <meta charset="UTF-8">
     <meta name='viewport' content='width=device-width, initial-scale=1.0, user-scalable=0'>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="description" content="Login - Arabian Dena">
+    <meta name="description" content="Sign Up - Arabian Dena">
     <meta name="author" content="Arabian Dena">
-    <meta name="keywords" content="login, authentication">
+    <meta name="keywords" content="register, sign up, authentication">
 
     <!-- FAVICON -->
     <link rel="shortcut icon" type="image/x-icon" href="/assets/images/brand/favicon.ico">
 
     <!-- TITLE -->
-    <title>Login - Arabian Dena</title>
+    <title>Sign Up - Arabian Dena</title>
 
     <!-- BOOTSTRAP CSS -->
     <link id="style" href="/assets/plugins/bootstrap/css/bootstrap.min.css" rel="stylesheet">
@@ -126,20 +126,6 @@
             transform: translateY(0);
         }
 
-        .form-check {
-            margin-bottom: 20px;
-        }
-
-        .form-check-input:checked {
-            background-color: rgb(108, 95, 252);
-            border-color: rgb(108, 95, 252);
-        }
-
-        .form-check-label {
-            color: #5a6970;
-            font-size: 14px;
-        }
-
         .alert-danger {
             background-color: #fee;
             border: 1px solid #fcc;
@@ -148,13 +134,6 @@
             border-radius: 8px;
             margin-bottom: 20px;
             font-size: 14px;
-        }
-
-        .text-danger {
-            color: #dc3545;
-            font-size: 13px;
-            margin-top: 5px;
-            display: block;
         }
 
         .invalid-feedback {
@@ -170,16 +149,10 @@
     <div class="login-page">
         <div class="login-card">
             <div class="login-header">
-                <h2>Welcome Back</h2>
-                <p>Sign in to continue to Arabian Dena</p>
+                <h2>Create Account</h2>
+                <p>Sign up to join Arabian Dena</p>
             </div>
             <div class="login-body">
-                @if (session('session_expired'))
-                    <div class="alert alert-danger">
-                        Your session has expired. Please sign in again.
-                    </div>
-                @endif
-
                 @if ($errors->any())
                     <div class="alert alert-danger">
                         <ul class="mb-0">
@@ -190,18 +163,34 @@
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('login') }}">
+                <form method="POST" action="{{ route('register') }}">
                     @csrf
 
                     <div class="form-group">
+                        <label for="name" class="form-label">Full Name</label>
+                        <input type="text"
+                               class="form-control @error('name') is-invalid @enderror"
+                               id="name"
+                               name="name"
+                               value="{{ old('name') }}"
+                               required
+                               autofocus
+                               placeholder="Enter your name">
+                        @error('name')
+                            <span class="invalid-feedback" role="alert">
+                                <strong>{{ $message }}</strong>
+                            </span>
+                        @enderror
+                    </div>
+
+                    <div class="form-group">
                         <label for="email" class="form-label">Email Address</label>
-                        <input type="email" 
-                               class="form-control @error('email') is-invalid @enderror" 
-                               id="email" 
-                               name="email" 
-                               value="{{ old('email') }}" 
-                               required 
-                               autofocus 
+                        <input type="email"
+                               class="form-control @error('email') is-invalid @enderror"
+                               id="email"
+                               name="email"
+                               value="{{ old('email') }}"
+                               required
                                placeholder="Enter your email">
                         @error('email')
                             <span class="invalid-feedback" role="alert">
@@ -212,12 +201,12 @@
 
                     <div class="form-group">
                         <label for="password" class="form-label">Password</label>
-                        <input type="password" 
-                               class="form-control @error('password') is-invalid @enderror" 
-                               id="password" 
-                               name="password" 
-                               required 
-                               placeholder="Enter your password">
+                        <input type="password"
+                               class="form-control @error('password') is-invalid @enderror"
+                               id="password"
+                               name="password"
+                               required
+                               placeholder="Create a password">
                         @error('password')
                             <span class="invalid-feedback" role="alert">
                                 <strong>{{ $message }}</strong>
@@ -225,21 +214,24 @@
                         @enderror
                     </div>
 
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="remember" id="remember" {{ old('remember') ? 'checked' : '' }}>
-                        <label class="form-check-label" for="remember">
-                            Remember me
-                        </label>
+                    <div class="form-group">
+                        <label for="password_confirmation" class="form-label">Confirm Password</label>
+                        <input type="password"
+                               class="form-control"
+                               id="password_confirmation"
+                               name="password_confirmation"
+                               required
+                               placeholder="Confirm your password">
                     </div>
 
                     <button type="submit" class="btn btn-primary-custom">
-                        Sign In
+                        Sign Up
                     </button>
                 </form>
 
                 <p class="text-center mt-4 mb-0" style="color: #5a6970; font-size: 14px;">
-                    Don't have an account?
-                    <a href="{{ route('register') }}" style="color: rgb(108, 95, 252); font-weight: 500; text-decoration: none;">Sign up</a>
+                    Already have an account?
+                    <a href="{{ route('login') }}" style="color: rgb(108, 95, 252); font-weight: 500; text-decoration: none;">Sign in</a>
                 </p>
             </div>
         </div>
@@ -254,4 +246,3 @@
 </body>
 
 </html>
-

@@ -15,6 +15,7 @@ use App\Models\Backload;
 use App\Models\BackloadItem;
 use App\Models\ProductItemCertificate;
 use App\Models\CompanyPriceList;
+use App\Models\User;
 use App\Services\ProductItemStatusService;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
@@ -279,6 +280,13 @@ class DashboardController extends Controller
         return redirect()->back();
     }
 
+
+    public function Users()
+    {
+        $users = User::orderBy('name')->orderBy('id')->get();
+
+        return view('dashboard.users', ['users' => $users]);
+    }
 
     public function Companies()
     {
@@ -857,6 +865,7 @@ class DashboardController extends Controller
             'Order' => $Order,
             'clientCode' => $clientCode,
             'rows' => $rows,
+            'currentUserName' => auth()->user()?->name ?? '',
         ]);
         return $pdf->download('delivery_note_order_' . $Order->id . '.pdf');
     }
@@ -991,6 +1000,7 @@ class DashboardController extends Controller
             'rows' => $rows,
             'siteText' => $siteText,
             'poNumbersText' => $poNumbersText,
+            'currentUserName' => auth()->user()?->name ?? '',
         ]);
 
         return $pdf->download('backload_note_' . $Backload->id . '.pdf');
@@ -1221,51 +1231,93 @@ class DashboardController extends Controller
             'breakdown' => implode(', ', $breakdown)
         ];
     }
+    private function addProductItemToOrder(Order $order, int $productItemId): void
+    {
+        $productItem = ProductItem::query()
+            ->where('id', $productItemId)
+            ->lockForUpdate()
+            ->first();
+
+        if (!$productItem || !$productItem->is_active) {
+            throw new \RuntimeException('This product item is not available.');
+        }
+
+        if (($productItem->status ?? '') !== 'In Stock') {
+            throw new \RuntimeException('This product item is no longer in stock.');
+        }
+
+        $alreadyInThisOrder = OrderItem::query()
+            ->where('order_id', $order->id)
+            ->where('product_item_id', $productItemId)
+            ->exists();
+
+        if ($alreadyInThisOrder) {
+            throw new \RuntimeException('This product item was already added to this order.');
+        }
+
+        $orderItem = OrderItem::create([
+            'order_id' => $order->id,
+            'product_item_id' => $productItemId,
+        ]);
+
+        $orderItem->productItem?->update(['inactive_90d_notified_at' => null]);
+
+        $statusService = new ProductItemStatusService();
+        $statusService->updateRentalStatus($productItem);
+    }
+
     public function StoreOrderItem(Request $request, Order $Order)
     {
         $validated = Validator::make($request->all(), [
             'product_item_id' => ['required', 'integer', Rule::exists('product_items', 'id')],
         ])->validate();
 
-        $productItemId = (int) $validated['product_item_id'];
-
         try {
-            DB::transaction(function () use ($Order, $productItemId) {
-                $productItem = ProductItem::query()
-                    ->where('id', $productItemId)
-                    ->lockForUpdate()
-                    ->first();
-
-                if (!$productItem || !$productItem->is_active) {
-                    throw new \RuntimeException('This product item is not available.');
-                }
-
-                if (($productItem->status ?? '') !== 'In Stock') {
-                    throw new \RuntimeException('This product item is no longer in stock.');
-                }
-
-                $alreadyInThisOrder = OrderItem::query()
-                    ->where('order_id', $Order->id)
-                    ->where('product_item_id', $productItemId)
-                    ->exists();
-
-                if ($alreadyInThisOrder) {
-                    throw new \RuntimeException('This product item was already added to this order.');
-                }
-
-                $orderItem = OrderItem::create([
-                    'order_id' => $Order->id,
-                    'product_item_id' => $productItemId,
-                ]);
-
-                $orderItem->productItem?->update(['inactive_90d_notified_at' => null]);
-
-                // Update ProductItem status (will set it to Under Rental if not returned)
-                $statusService = new ProductItemStatusService();
-                $statusService->updateRentalStatus($productItem);
+            DB::transaction(function () use ($Order, $validated) {
+                $this->addProductItemToOrder($Order, (int) $validated['product_item_id']);
             });
         } catch (\RuntimeException $e) {
             return redirect()->back()->withErrors(['product_item_id' => $e->getMessage()]);
+        }
+
+        return redirect()->back();
+    }
+
+    public function StoreOrderItems(Request $request, Order $Order)
+    {
+        $validated = Validator::make($request->all(), [
+            'product_item_ids' => ['required', 'array', 'min:1'],
+            'product_item_ids.*' => ['integer', Rule::exists('product_items', 'id')],
+        ], [
+            'product_item_ids.required' => 'Select at least one product item.',
+            'product_item_ids.min' => 'Select at least one product item.',
+        ])->validate();
+
+        $productItemIds = array_values(array_unique(array_map('intval', $validated['product_item_ids'])));
+        $added = 0;
+        $errors = [];
+
+        foreach ($productItemIds as $productItemId) {
+            try {
+                DB::transaction(function () use ($Order, $productItemId) {
+                    $this->addProductItemToOrder($Order, $productItemId);
+                });
+                $added++;
+            } catch (\RuntimeException $e) {
+                $errors[] = "#{$productItemId}: {$e->getMessage()}";
+            }
+        }
+
+        if ($added === 0) {
+            return redirect()->back()->withErrors([
+                'product_item_ids' => $errors ?: ['No product items could be added.'],
+            ]);
+        }
+
+        if ($errors !== []) {
+            return redirect()->back()->withErrors([
+                'product_item_ids' => 'Some items were skipped: ' . implode(' ', $errors),
+            ]);
         }
 
         return redirect()->back();
@@ -1350,11 +1402,26 @@ class DashboardController extends Controller
     }
     public function Backload(Backload $Backload)
     {
-        $OrderItems = OrderItem::whereNotIn('id', $Backload->BackloadItems->pluck('order_item_id')->toArray())
-            ->whereIn('id', $Backload->Company->OrderItems->pluck('id')->toArray())
-            ->get();
-        return view('dashboard.backload', ['Backload' => $Backload, 'OrderItems' => $OrderItems]);
+        $Backload->load([
+            'BackloadItems.OrderItem.ProductItem.Product',
+            'BackloadItems.OrderItem.Order',
+            'Company',
+        ]);
 
+        $backloadOrderItemIds = $Backload->BackloadItems
+            ->pluck('order_item_id')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $OrderItems = OrderItem::query()
+            ->whereNotIn('id', $backloadOrderItemIds)
+            ->whereIn('id', $Backload->Company->OrderItems()->pluck('order_items.id'))
+            ->with(['ProductItem.Product', 'Order'])
+            ->get();
+
+        return view('dashboard.backload', ['Backload' => $Backload, 'OrderItems' => $OrderItems]);
     }
     public function Backloads()
     {

@@ -5,27 +5,22 @@
     <title>Delivery Note - {{ $Order->order_number ?? ('Order #' . $Order->id) }}</title>
     <style>
         @page { margin: 16px; }
-        body { font-family: Arial, sans-serif; font-size: 10px; color: #111; }
+        body { font-family: Calibri, Carlito, DejaVu Sans, sans-serif; font-size: 10px; color: #111; }
         .sheet { width: 100%; }
         .top { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
         .top td { vertical-align: top; }
-        .brand {
-            font-weight: bold;
-            font-size: 18px;
-            letter-spacing: 2px;
-        }
-        .brand small { display: block; font-size: 9px; letter-spacing: 0; font-weight: normal; }
+        .pdf-logo { max-height: 58px; max-width: 240px; height: auto; display: block; }
         .right-meta { text-align: right; font-size: 9px; line-height: 1.35; }
 
         .box { width: 100%; border-collapse: collapse; margin-top: 6px; }
         .box td, .box th { border: 1px solid #333; padding: 4px 6px; }
-        .box th { background: #e9ecef; text-align: left; font-weight: bold; width: 16%; }
+        .box th { background: #f4d45f; text-align: left; font-weight: bold; width: 16%; }
 
         .title { text-align: center; font-weight: bold; margin: 6px 0 8px; }
 
         .items { width: 100%; border-collapse: collapse; margin-top: 8px; }
         .items th, .items td { border: 1px solid #333; padding: 5px 6px; }
-        .items th { background: #e9ecef; text-align: center; }
+        .items th { background: #f4d45f; text-align: center; }
         .items td.num { width: 6%; text-align: center; }
         .items td.qty { width: 8%; text-align: center; }
         .items td.desc { width: 36%; }
@@ -35,12 +30,15 @@
         .footnote { font-size: 8px; margin-top: 6px; }
 
         .driver { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .driver td { border: 1px solid #333; padding: 5px 6px; }
-        .driver .label { background: #e9ecef; font-weight: bold; width: 16%; }
+        .driver td { border: 1px solid #333; padding: 5px 6px; font-size: 10px; }
+        .driver .label { background: #f4d45f; font-weight: bold; width: 16%; }
 
         .sign { width: 100%; border-collapse: collapse; margin-top: 18px; }
-        .sign th, .sign td { border: 1px solid #333; padding: 6px; text-align: center; }
-        .sign th { background: #e9ecef; font-weight: bold; }
+        .sign th, .sign td { border: 1px solid #333; padding: 5px 6px; text-align: center; font-size: 10px; }
+        .sign th { background: #f4d45f; font-weight: bold; }
+
+        .pdf-iso-logos { text-align: center; margin-top: 12px; width: 100%; }
+        .pdf-iso-logos-img { max-width: 260px; width: 55%; height: auto; }
     </style>
 </head>
 <body>
@@ -48,11 +46,7 @@
         <table class="top">
             <tr>
                 <td style="width: 60%;">
-                    <div class="brand">
-                        ARABIAN DENA
-                        <small>CONTRACTING EST.</small>
-                    </div>
-                    <div style="font-size:9px; font-style: italic;">SERVICE AND PERFECTION AT ITS BEST</div>
+                    @include('dashboard.partials.pdf_logo')
                 </td>
                 <td class="right-meta" style="width: 40%;">
                     <div>P. O Box No. 7969 - 5141, Dammam 32433, Kingdom of Saudi Arabia</div>
@@ -159,11 +153,13 @@
                 <th>Received By</th>
             </tr>
             <tr>
-                <td style="height: 70px;"></td>
+                <td style="height: 70px; vertical-align: middle;">{{ $currentUserName ?? '' }}</td>
                 <td style="height: 70px;"></td>
                 <td style="height: 70px;"></td>
             </tr>
         </table>
+
+        @include('dashboard.partials.pdf_iso_logos')
     </div>
 </body>
 </html>

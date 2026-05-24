@@ -6,12 +6,12 @@
     <title>Time Sheet</title>
     <style>
         @page { margin: 18px 18px 14px 18px; }
-        body { font-family: DejaVu Sans, sans-serif; font-size: 10px; color: #111; }
+        body { font-family: Calibri, Carlito, DejaVu Sans, sans-serif; font-size: 10px; color: #111; }
         .header { width: 100%; margin-bottom: 10px; }
         .header table { width: 100%; border-collapse: collapse; }
         .header td { vertical-align: top; }
-        .brand { font-weight: 700; font-size: 14px; letter-spacing: 0.3px; }
-        .sub { margin-top: 4px; font-size: 10px; color: #333; }
+        .pdf-logo { max-height: 58px; max-width: 240px; height: auto; display: block; }
+        .sub { margin-top: 6px; font-size: 10px; color: #333; }
         .meta { width: 100%; border: 1px solid #C00000; border-collapse: collapse; }
         .meta th, .meta td { border: 1px solid #C00000; padding: 4px 6px; }
         .meta th { background: #F4D45F; text-align: left; font-weight: 700; }
@@ -34,6 +34,9 @@
         .signatures td { width: 33.33%; text-align: center; padding-top: 14px; }
         .line { border-top: 1px solid #333; width: 70%; margin: 0 auto 4px auto; }
         .sig-label { font-weight: 700; font-size: 10px; }
+
+        .pdf-iso-logos { text-align: center; margin-top: 12px; width: 100%; }
+        .pdf-iso-logos-img { max-width: 260px; width: 55%; height: auto; }
     </style>
 </head>
 <body>
@@ -41,7 +44,7 @@
         <table>
             <tr>
                 <td style="width: 60%;">
-                    <div class="brand">ARABIAN DENA CONTRACTING EST.</div>
+                    @include('dashboard.partials.pdf_logo')
                     <div class="sub">Rented Equipment List - Time Sheet</div>
                 </td>
                 <td style="width: 40%;">
@@ -153,6 +156,8 @@
             </tr>
         </table>
     </div>
+
+    @include('dashboard.partials.pdf_iso_logos')
 </body>
 </html>
 

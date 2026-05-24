@@ -21,6 +21,18 @@
                     </div>
                 </div>
                 <!-- PAGE-HEADER END -->
+                @if ($errors->any())
+                    <div class="alert alert-danger">
+                        <ul class="mb-0">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+                <form id="add-combination-form" action="{{ route('dashboard.store_order_items', $Order) }}" method="POST">
+                    @csrf
+                </form>
                 <!-- ROW-2 -->
                 <!-- Row -->
                 <div class="row row-sm">
@@ -29,7 +41,7 @@
                             <div class="card-header">
                                 <h3 class="card-title">Product Items</h3>
                                 <div class="card-options">
-                                    <button type="submit" class="btn btn-primary">add as combination</button>
+                                    <button type="submit" form="add-combination-form" class="btn btn-primary">add as combination</button>
                                 </div>
 
                             </div>
@@ -50,7 +62,14 @@
                                         <tbody>
                                             @foreach ($ProductItems as $ProductItem)
                                                 <tr>
-                                                    <td><input type="checkbox"></td>
+                                                    <td>
+                                                        <input
+                                                            type="checkbox"
+                                                            form="add-combination-form"
+                                                            name="product_item_ids[]"
+                                                            value="{{ $ProductItem->id }}"
+                                                        >
+                                                    </td>
                                                     <td>{{ $ProductItem->id }} - @if($ProductItem->Product->image_url)<img src="{{ $ProductItem->Product->image_url }}" alt="Product Image" width="25">@endif</td>
                                                     <td>{{ $ProductItem->product->name }}</td>
                                                     <td>{{ $ProductItem->series_number }}</td>

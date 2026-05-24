@@ -42,11 +42,15 @@
                                         </thead>
                                         <tbody>
                                             @foreach ($OrderItems as $OrderItem)
+                                                @php
+                                                    $productItem = $OrderItem->ProductItem;
+                                                    $product = $productItem?->Product;
+                                                @endphp
                                                 <tr>
-                                                    <td>{{ $OrderItem->id }} - @if($OrderItem->ProductItem->Product->image_url)<img src="{{ $OrderItem->ProductItem->Product->image_url }}" alt="Product Image" width="25">@endif</td>
-                                                    <td>{{ $OrderItem->ProductItem->product->name }}</td>
-                                                    <td>{{ $OrderItem->ProductItem->series_number }}</td>
-                                                    <td>{{ $OrderItem->Order->delivery_date }}</td>
+                                                    <td>{{ $OrderItem->id }}@if($product?->image_url) - <img src="{{ $product->image_url }}" alt="Product Image" width="25">@endif</td>
+                                                    <td>{{ $product?->name ?? '—' }}</td>
+                                                    <td>{{ $productItem?->series_number ?? '—' }}</td>
+                                                    <td>{{ $OrderItem->Order?->delivery_date ?? '—' }}</td>
                                                     <td>Active</td>
                                                     <td >
 
@@ -93,12 +97,17 @@
                                         </thead>
                                         <tbody>
                                             @foreach ($Backload->BackloadItems as $BackloadItem)
+                                                @php
+                                                    $orderItem = $BackloadItem->OrderItem;
+                                                    $productItem = $orderItem?->ProductItem;
+                                                    $product = $productItem?->Product;
+                                                @endphp
                                                 <tr>
-                                                    <td>{{ $BackloadItem->OrderItem->id }} - @if($BackloadItem->OrderItem->ProductItem->Product->image_url)<img src="{{ $BackloadItem->OrderItem->ProductItem->Product->image_url }}" alt="Product Image" width="25">@endif</td>
-                                                    <td>{{ $BackloadItem->OrderItem->ProductItem->product->name }}</td>
-                                                    <td>{{ $BackloadItem->OrderItem->ProductItem->series_number }}</td>
-                                                    <td>{{ $BackloadItem->OrderItem->Order->delivery_date }}</td>
-                                                    <td>{{ $BackloadItem->Backload->date }}</td>
+                                                    <td>{{ $orderItem?->id ?? '—' }}@if($product?->image_url) - <img src="{{ $product->image_url }}" alt="Product Image" width="25">@endif</td>
+                                                    <td>{{ $product?->name ?? '—' }}</td>
+                                                    <td>{{ $productItem?->series_number ?? '—' }}</td>
+                                                    <td>{{ $orderItem?->Order?->delivery_date ?? '—' }}</td>
+                                                    <td>{{ $BackloadItem->Backload?->date ?? $Backload->date ?? '—' }}</td>
                                                     <td>
 
 

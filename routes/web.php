@@ -7,10 +7,14 @@ use App\Http\Controllers\AuthController;
 // Authentication Routes
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login')->middleware('guest');
 Route::post('/login', [AuthController::class, 'login'])->middleware('guest');
+Route::get('/register', [AuthController::class, 'showRegisterForm'])->name('register')->middleware('guest');
+Route::post('/register', [AuthController::class, 'register'])->middleware('guest');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
 
 // Protected Dashboard Routes
 Route::middleware(['auth'])->group(function () {
+    Route::get('/profile', [AuthController::class, 'showProfile'])->name('profile');
+    Route::post('/profile', [AuthController::class, 'updateProfile'])->name('profile.update');
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard.index');
 // categories
 Route::get('/categories', [DashboardController::class, 'Categories'])->name('dashboard.categories');
@@ -34,6 +38,8 @@ Route::get('product_item/{ProductItem}/delete', [DashboardController::class, 'De
 Route::post('product_item/{ProductItem}/update', [DashboardController::class, 'UpdateProductItem'])->name('dashboard.update_product_item');
 Route::post('notifications/{notification}/read', [DashboardController::class, 'MarkNotificationAsRead'])->name('dashboard.notifications.read');
 Route::post('notifications/read-all', [DashboardController::class, 'MarkAllNotificationsAsRead'])->name('dashboard.notifications.read_all');
+// users
+Route::get('/users', [DashboardController::class, 'Users'])->name('dashboard.users');
 // company
 Route::get('/companies', [DashboardController::class, 'Companies'])->name('dashboard.companies');
 Route::post('/company/create', [DashboardController::class, 'StoreCompany'])->name('dashboard.store_company');
@@ -57,6 +63,7 @@ Route::get('/order/{Order}/certificates-zip', [DashboardController::class, 'Down
 Route::get('/order/{Order}/delete', [DashboardController::class, 'DeleteOrder'])->name('dashboard.delete_order');
 Route::post('/order/{Order}/update', [DashboardController::class, 'UpdateOrder'])->name('dashboard.update_order');
 Route::post('/order/{Order}/create_order_item', [DashboardController::class, 'StoreOrderItem'])->name('dashboard.store_order_item');
+Route::post('/order/{Order}/create_order_items', [DashboardController::class, 'StoreOrderItems'])->name('dashboard.store_order_items');
 Route::post('order_item/{OrderItem}/update', [DashboardController::class, 'UpdateOrderItem'])->name('dashboard.update_order_item');
 Route::get('order_item/{OrderItem}/delete', [DashboardController::class, 'DeleteOrderItem'])->name('dashboard.delete_order_item');
 
