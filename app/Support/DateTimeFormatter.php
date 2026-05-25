@@ -7,7 +7,7 @@ use DateTimeInterface;
 
 class DateTimeFormatter
 {
-    public const DISPLAY_FORMAT = 'd M Y H:i';
+    public const DISPLAY_FORMAT = 'd M Y g:i A';
 
     public static function format(?DateTimeInterface $date, string $format = self::DISPLAY_FORMAT): string
     {
