@@ -188,7 +188,7 @@ class ApprovalNotificationService
         return match ($entityType) {
             ApprovableEntity::TYPE_CATEGORY => $query->with('modifiedBy')->findOrFail($id),
             ApprovableEntity::TYPE_PRODUCT => $query->with(['modifiedBy', 'Category'])->findOrFail($id),
-            ApprovableEntity::TYPE_PRODUCT_ITEM => $query->with(['modifiedBy', 'Product'])->findOrFail($id),
+            ApprovableEntity::TYPE_PRODUCT_ITEM => $query->with(['modifiedBy', 'product'])->findOrFail($id),
             ApprovableEntity::TYPE_ORDER => $query->with(['modifiedBy', 'Company'])->findOrFail($id),
             ApprovableEntity::TYPE_BACKLOAD => $query->with(['modifiedBy', 'Company'])->findOrFail($id),
             ApprovableEntity::TYPE_COMPANY => $query->with('modifiedBy')->findOrFail($id),
@@ -260,7 +260,7 @@ class ApprovalNotificationService
             $this->field('ID', $productItem->id),
             $this->field('Item Code', $productItem->product_item_code),
             $this->field('Series Number', $productItem->series_number),
-            $this->field('Product', $productItem->Product?->name),
+            $this->field('Product', $productItem->product?->name),
             $this->field('Inventory Status', $productItem->status),
             $this->field('Inspection Date', $productItem->inspection_date),
             $this->linkField('Certificate', $certificateUrl),

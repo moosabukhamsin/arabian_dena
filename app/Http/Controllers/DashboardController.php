@@ -35,6 +35,8 @@ class DashboardController extends Controller
 {
     private const TIME_SLOTS = ['Morning', 'Afternoon', 'Evening'];
 
+    private const SUBMITTED_FOR_REVIEW_MESSAGE = 'Your request has been submitted for review by the responsible admin.';
+
     private function stripApprovalFieldsFromData(array $data): array
     {
         unset($data['approval_status'], $data['authorized_by_id'], $data['modified_by_id']);
@@ -56,6 +58,16 @@ class DashboardController extends Controller
     private function notifyApprovalReviewers(Model $entity, string $action): void
     {
         app(ApprovalNotificationService::class)->notifyReviewers($entity, $action);
+    }
+
+    private function redirectWithSubmittedForReviewMessage()
+    {
+        return redirect()->back()->with('success', self::SUBMITTED_FOR_REVIEW_MESSAGE);
+    }
+
+    private function redirectToOrdersWithSubmittedForReviewMessage()
+    {
+        return redirect()->route('dashboard.orders')->with('success', self::SUBMITTED_FOR_REVIEW_MESSAGE);
     }
 
     private function buildTimeSheetRowsForOrderItems($orderItems): array
@@ -293,7 +305,7 @@ class DashboardController extends Controller
         }
         $this->notifyApprovalReviewers($category, 'created');
 
-        return redirect()->back();
+        return $this->redirectWithSubmittedForReviewMessage();
     }
     public function UpdateCategory(Request $request, Category $Category)
     {
@@ -306,7 +318,7 @@ class DashboardController extends Controller
         $Category->update($data);
         $this->notifyApprovalReviewers($Category, 'updated');
 
-        return redirect()->back();
+        return $this->redirectWithSubmittedForReviewMessage();
     }
     public function DeleteCategory(Category $Category)
     {
@@ -378,7 +390,7 @@ class DashboardController extends Controller
         $company = Company::create($data);
         $this->notifyApprovalReviewers($company, 'created');
 
-        return redirect()->back();
+        return $this->redirectWithSubmittedForReviewMessage();
     }
     public function UpdateCompany(Request $request, Company $Company)
     {
@@ -391,7 +403,7 @@ class DashboardController extends Controller
         $Company->update($data);
         $this->notifyApprovalReviewers($Company, 'updated');
 
-        return redirect()->back();
+        return $this->redirectWithSubmittedForReviewMessage();
     }
     public function DeleteCompany(Company $Company)
     {
@@ -477,7 +489,7 @@ class DashboardController extends Controller
         }
         $this->notifyApprovalReviewers($product, 'created');
 
-        return redirect()->back();
+        return $this->redirectWithSubmittedForReviewMessage();
     }
     public function Product(Product $Product)
     {
@@ -499,7 +511,7 @@ class DashboardController extends Controller
         $Product->update($data);
         $this->notifyApprovalReviewers($Product, 'updated');
 
-        return redirect()->back();
+        return $this->redirectWithSubmittedForReviewMessage();
     }
     public function DeleteProduct(Product $Product)
     {
@@ -509,7 +521,7 @@ class DashboardController extends Controller
 
     public function ProductItem(ProductItem $ProductItem)
     {
-        $ProductItem->load(['Product', 'Certificates' => function ($q) {
+        $ProductItem->load(['product', 'Certificates' => function ($q) {
             $q->orderByDesc('created_at');
         }]);
         return view('dashboard.product_item', ['ProductItem' => $ProductItem]);
@@ -678,7 +690,7 @@ class DashboardController extends Controller
         }
         $this->notifyApprovalReviewers($productItem, 'created');
 
-        return redirect()->back();
+        return $this->redirectWithSubmittedForReviewMessage();
     }
     public function DeleteProductItem(ProductItem $ProductItem)
     {
@@ -717,7 +729,7 @@ class DashboardController extends Controller
         $ProductItem->refresh();
         $this->notifyApprovalReviewers($ProductItem, 'updated');
 
-        return redirect()->back();
+        return $this->redirectWithSubmittedForReviewMessage();
     }
     // orders
     public function StoreOrderDirect(Request $request)
@@ -752,7 +764,7 @@ class DashboardController extends Controller
                     $order = Order::create($data);
                     $this->notifyApprovalReviewers($order, 'created');
 
-                    return redirect()->route('dashboard.orders');
+                    return $this->redirectToOrdersWithSubmittedForReviewMessage();
                 } catch (\Illuminate\Database\QueryException $e) {
                     // retry on unique collision
                 }
@@ -762,7 +774,7 @@ class DashboardController extends Controller
         $order = Order::create($data);
         $this->notifyApprovalReviewers($order, 'created');
 
-        return redirect()->route('dashboard.orders');
+        return $this->redirectToOrdersWithSubmittedForReviewMessage();
     }
     public function StoreOrder(Request $request,Company $Company)
     {
@@ -791,7 +803,7 @@ class DashboardController extends Controller
                 $order = Order::create($data);
                 $this->notifyApprovalReviewers($order, 'created');
 
-                return redirect()->back();
+                return $this->redirectWithSubmittedForReviewMessage();
             } catch (\Illuminate\Database\QueryException $e) {
                 // retry on unique collision
             }
@@ -800,7 +812,7 @@ class DashboardController extends Controller
         $order = Order::create($data);
         $this->notifyApprovalReviewers($order, 'created');
 
-        return redirect()->back();
+        return $this->redirectWithSubmittedForReviewMessage();
     }
     public function DeleteOrder(Order $Order)
     {
@@ -856,47 +868,11 @@ class DashboardController extends Controller
         $Order->update($data);
         $this->notifyApprovalReviewers($Order, 'updated');
 
-        return redirect()->back();
+        return $this->redirectWithSubmittedForReviewMessage();
     }
     public function Order(Order $Order)
     {
-        // Get all product items that are currently on rental (active order items not returned)
-        // An item is considered rented if:
-        // 1. It has an order item that hasn't been returned via a backload item
-        // 2. (If there's no backload item, the order item is still active/rented)
-
-        $rentedProductItemIds = OrderItem::whereNotIn('id', function($query) {
-                $query->select('order_item_id')
-                      ->from('backload_items')
-                      ->whereNotNull('order_item_id');
-            })
-            ->pluck('product_item_id')
-            ->toArray();
-
-        $orderProductIds = is_array($Order->product_ids) ? $Order->product_ids : [];
-
-        // Get available product items that are:
-        // 1. Active (is_active = 1)
-        // 2. Status is 'In Stock'
-        // 3. Not already in this order
-        // 4. Not currently rented by any company
-        $ProductItems = ProductItem::where('is_active', 1)
-            ->where('status', 'In Stock') // Only show items that are in stock
-            ->when(!empty($orderProductIds), function ($query) use ($orderProductIds) {
-                $query->whereIn('product_id', $orderProductIds);
-            }, function ($query) {
-                // If order has no selected products, show none to prevent mismatched order items
-                $query->whereRaw('1 = 0');
-            })
-            ->whereNotIn('id', $Order->OrderItems()->pluck('product_item_id')->toArray()) // Not already in this order
-            ->whereNotIn('id', $rentedProductItemIds) // Not currently rented by any company
-            ->with([
-                'product',
-                'Certificates' => function ($q) {
-                    $q->orderByDesc('created_at');
-                },
-            ])
-            ->get();
+        $ProductItems = $this->availableProductItemsForOrder($Order);
 
         $Order->load([
             'Company',
@@ -1035,7 +1011,7 @@ class DashboardController extends Controller
 
     public function BackloadNote(Backload $Backload)
     {
-        $Backload->load(['Company', 'BackloadItems.OrderItem.ProductItem.Product', 'BackloadItems.OrderItem.Order', 'authorizedBy']);
+        $Backload->load(['Company', 'BackloadItems.OrderItem.ProductItem.product', 'BackloadItems.OrderItem.Order', 'authorizedBy']);
 
         $companyName = $Backload->Company->name ?? '';
         $clientCode = $this->companyNameInitials($companyName);
@@ -1048,7 +1024,7 @@ class DashboardController extends Controller
 
         $byProduct = [];
         foreach ($Backload->BackloadItems as $backloadItem) {
-            $product = $backloadItem->OrderItem?->ProductItem?->Product;
+            $product = $backloadItem->OrderItem?->ProductItem?->product;
             $productId = $product?->id;
             $series = $backloadItem->OrderItem?->ProductItem?->series_number;
             if (!$productId) {
@@ -1339,19 +1315,80 @@ class DashboardController extends Controller
             'breakdown' => implode(', ', $breakdown)
         ];
     }
+    /**
+     * Product items that can be added to an order (in stock, approved, not rented elsewhere).
+     */
+    private function availableProductItemsForOrder(Order $order)
+    {
+        $rentedProductItemIds = OrderItem::query()
+            ->whereNotIn('id', function ($query) {
+                $query->select('order_item_id')
+                    ->from('backload_items')
+                    ->whereNotNull('order_item_id');
+            })
+            ->pluck('product_item_id')
+            ->filter()
+            ->all();
+
+        $orderProductIds = $this->normalizeOrderProductIds($order->product_ids);
+
+        $alreadyOnOrderIds = $order->OrderItems()->pluck('product_item_id')->filter()->all();
+
+        return ProductItem::query()
+            ->where('is_active', true)
+            ->visible()
+            ->where('status', 'In Stock')
+            ->when(
+                $orderProductIds !== [],
+                fn ($query) => $query->whereIn('product_id', $orderProductIds)
+            )
+            ->whereNotIn('id', $alreadyOnOrderIds)
+            ->when(
+                $rentedProductItemIds !== [],
+                fn ($query) => $query->whereNotIn('id', $rentedProductItemIds)
+            )
+            ->with([
+                'product',
+                'Certificates' => fn ($q) => $q->orderByDesc('created_at'),
+            ])
+            ->orderBy('series_number')
+            ->get();
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function normalizeOrderProductIds(mixed $productIds): array
+    {
+        if (! is_array($productIds)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter(array_map(
+            fn ($id) => (int) $id,
+            $productIds
+        ), fn ($id) => $id > 0)));
+    }
+
     private function addProductItemToOrder(Order $order, int $productItemId): void
     {
         $productItem = ProductItem::query()
             ->where('id', $productItemId)
+            ->visible()
             ->lockForUpdate()
             ->first();
 
-        if (!$productItem || !$productItem->is_active) {
+        if (! $productItem || ! $productItem->is_active) {
             throw new \RuntimeException('This product item is not available.');
         }
 
         if (($productItem->status ?? '') !== 'In Stock') {
             throw new \RuntimeException('This product item is no longer in stock.');
+        }
+
+        $orderProductIds = $this->normalizeOrderProductIds($order->product_ids);
+        if ($orderProductIds !== [] && ! in_array((int) $productItem->product_id, $orderProductIds, true)) {
+            throw new \RuntimeException('This product item does not belong to a product on this order.');
         }
 
         $alreadyInThisOrder = OrderItem::query()
@@ -1469,7 +1506,7 @@ class DashboardController extends Controller
                     $backload = Backload::create($data);
                     $this->notifyApprovalReviewers($backload, 'created');
 
-                    return redirect()->back();
+                    return $this->redirectWithSubmittedForReviewMessage();
                 } catch (\Illuminate\Database\QueryException $e) {
                     // retry on unique collision
                 }
@@ -1479,14 +1516,14 @@ class DashboardController extends Controller
             $backload = Backload::create($data);
             $this->notifyApprovalReviewers($backload, 'created');
 
-            return redirect()->back();
+            return $this->redirectWithSubmittedForReviewMessage();
         }
 
         $data['backload_number'] = $backloadNumber;
         $backload = Backload::create($data);
         $this->notifyApprovalReviewers($backload, 'created');
 
-        return redirect()->back();
+        return $this->redirectWithSubmittedForReviewMessage();
     }
     public function UpdateBackload(Request $request, Backload $Backload)
     {
@@ -1507,7 +1544,7 @@ class DashboardController extends Controller
         $Backload->update($data);
         $this->notifyApprovalReviewers($Backload, 'updated');
 
-        return redirect()->back();
+        return $this->redirectWithSubmittedForReviewMessage();
     }
     public function DeleteBackload(Backload $Backload)
     {
@@ -1517,7 +1554,7 @@ class DashboardController extends Controller
     public function Backload(Backload $Backload)
     {
         $Backload->load([
-            'BackloadItems.OrderItem.ProductItem.Product',
+            'BackloadItems.OrderItem.ProductItem.product',
             'BackloadItems.OrderItem.Order',
             'Company',
         ]);
@@ -1532,7 +1569,7 @@ class DashboardController extends Controller
         $OrderItems = OrderItem::query()
             ->whereNotIn('id', $backloadOrderItemIds)
             ->whereIn('id', $Backload->Company->OrderItems()->pluck('order_items.id'))
-            ->with(['ProductItem.Product', 'order'])
+            ->with(['ProductItem.product', 'order'])
             ->get();
 
         return view('dashboard.backload', ['Backload' => $Backload, 'OrderItems' => $OrderItems]);

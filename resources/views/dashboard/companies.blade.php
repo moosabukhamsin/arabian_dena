@@ -10,6 +10,7 @@
                     <h1 class="page-title">Dashboard 01</h1>
                 </div>
                 <!-- PAGE-HEADER END -->
+                @include('dashboard.partials.flash-success')
                 <!-- ROW-2 -->
                 <!-- Row -->
                 <div class="row row-sm">

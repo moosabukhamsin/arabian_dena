@@ -21,6 +21,7 @@
                     </div>
                 </div>
                 <!-- PAGE-HEADER END -->
+                @include('dashboard.partials.flash-success')
                 @if ($errors->any())
                     <div class="alert alert-danger">
                         <ul class="mb-0">

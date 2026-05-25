@@ -13,8 +13,7 @@
 
                 </div>
                 <!-- PAGE-HEADER END -->
-
-
+                @include('dashboard.partials.flash-success')
 
                 <!-- ROW-2 -->
                 <!-- Row -->

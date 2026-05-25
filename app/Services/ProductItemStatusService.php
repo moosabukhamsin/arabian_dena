@@ -21,8 +21,8 @@ class ProductItemStatusService
 
         // Get all order items for this product item from active orders
         $orderItems = $productItem->orderItems()
-            ->with('parentOrder.company')
-            ->whereHas('parentOrder', function($query) {
+            ->with('order.company')
+            ->whereHas('order', function ($query) {
                 $query->where('is_active', true);
             })
             ->get();

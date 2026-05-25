@@ -24,7 +24,7 @@ class ProductItem extends Model
     {
         return $query->whereNotIn('status', self::TERMINAL_STATUSES);
     }
-    public function Product()
+    public function product()
     {
         return $this->belongsTo(Product::class);
     }

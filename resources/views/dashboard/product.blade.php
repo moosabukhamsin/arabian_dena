@@ -10,6 +10,7 @@
                     <h1 class="page-title">Product Items</h1>
                 </div>
                 <!-- PAGE-HEADER END -->
+                @include('dashboard.partials.flash-success')
                 <!-- ROW-2 -->
                 <!-- Row -->
                 <div class="row row-sm">
