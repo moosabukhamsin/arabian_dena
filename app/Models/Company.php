@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasApprovalWorkflow;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 class Company extends Model
 {
-    use HasFactory;
+    use HasApprovalWorkflow, HasFactory;
     protected $guarded = ['id'];
     public function Products()
     {

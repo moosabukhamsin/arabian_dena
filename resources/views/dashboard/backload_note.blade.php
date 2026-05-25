@@ -153,7 +153,7 @@
             </tr>
             <tr>
                 <td style="height: 42px; vertical-align: middle;">{{ $currentUserName ?? '' }}</td>
-                <td style="height: 42px;"></td>
+                <td style="height: 42px; vertical-align: middle;">{{ $Backload->authorizedBy?->name ?? '' }}</td>
                 <td style="height: 42px;"></td>
             </tr>
             <tr>

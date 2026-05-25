@@ -154,7 +154,7 @@
             </tr>
             <tr>
                 <td style="height: 70px; vertical-align: middle;">{{ $currentUserName ?? '' }}</td>
-                <td style="height: 70px;"></td>
+                <td style="height: 70px; vertical-align: middle;">{{ $Order->authorizedBy?->name ?? '' }}</td>
                 <td style="height: 70px;"></td>
             </tr>
         </table>

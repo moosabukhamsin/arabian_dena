@@ -30,6 +30,7 @@
                                                 <th class="border-bottom-0">Email</th>
                                                 <th class="border-bottom-0">Role</th>
                                                 <th class="border-bottom-0">Registered</th>
+                                                <th class="border-bottom-0">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -55,10 +56,15 @@
                                                     <td data-order="{{ $user->created_at?->timestamp ?? 0 }}">
                                                         {{ $user->created_at?->format('d M Y') ?? '—' }}
                                                     </td>
+                                                    <td>
+                                                        <a href="{{ route('dashboard.delete_user', $user) }}" class="btn btn-sm btn-danger">
+                                                            <span class="fe fe-trash-2"></span>
+                                                        </a>
+                                                    </td>
                                                 </tr>
                                             @empty
                                                 <tr>
-                                                    <td colspan="5" class="text-center text-muted">No users found.</td>
+                                                    <td colspan="6" class="text-center text-muted">No users found.</td>
                                                 </tr>
                                             @endforelse
                                         </tbody>
@@ -89,7 +95,7 @@
                 sSearch: '',
             },
             columnDefs: [
-                { orderable: false, targets: 3 },
+                { orderable: false, targets: [3, 5] },
             ],
         });
     });

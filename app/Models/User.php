@@ -56,4 +56,13 @@ class User extends Authenticatable
     {
         return ! in_array($this->role, [UserRole::Engineer, UserRole::WarehouseCoordinator], true);
     }
+
+    public function canApprovePending(): bool
+    {
+        return in_array($this->role, [
+            UserRole::Admin,
+            UserRole::OperationHead,
+            UserRole::OperationCoordinator,
+        ], true);
+    }
 }

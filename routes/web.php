@@ -15,12 +15,14 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middl
 Route::middleware(['auth'])->group(function () {
     Route::get('/profile', [AuthController::class, 'showProfile'])->name('profile');
     Route::post('/profile', [AuthController::class, 'updateProfile'])->name('profile.update');
+    Route::get('/profile/delete', [AuthController::class, 'deleteProfile'])->name('profile.delete');
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard.index');
 
     // Users (Admin & Operation Head only)
     Route::middleware('permission:access-users')->group(function () {
         Route::get('/users', [DashboardController::class, 'Users'])->name('dashboard.users');
         Route::post('/users/{User}/role', [DashboardController::class, 'UpdateUserRole'])->name('dashboard.update_user_role');
+        Route::get('/users/{User}/delete', [DashboardController::class, 'DeleteUser'])->name('dashboard.delete_user');
     });
 
     // Timesheets (all roles except Engineer)
@@ -80,6 +82,19 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('notifications/{notification}/read', [DashboardController::class, 'MarkNotificationAsRead'])->name('dashboard.notifications.read');
     Route::post('notifications/read-all', [DashboardController::class, 'MarkAllNotificationsAsRead'])->name('dashboard.notifications.read_all');
+
+    Route::middleware('permission:approve-pending')->group(function () {
+        Route::get('/pending-approvals', [DashboardController::class, 'PendingApprovals'])->name('dashboard.pending_approvals');
+        Route::get('/pending-approvals/{entityType}/{id}/review', [DashboardController::class, 'ReviewPending'])
+            ->whereIn('entityType', ['category', 'product', 'product_item', 'order', 'backload', 'company'])
+            ->name('dashboard.review_pending');
+        Route::post('/pending-approvals/{entityType}/{id}/approve', [DashboardController::class, 'ApprovePending'])
+            ->whereIn('entityType', ['category', 'product', 'product_item', 'order', 'backload', 'company'])
+            ->name('dashboard.approve_pending');
+        Route::post('/pending-approvals/{entityType}/{id}/reject', [DashboardController::class, 'RejectPending'])
+            ->whereIn('entityType', ['category', 'product', 'product_item', 'order', 'backload', 'company'])
+            ->name('dashboard.reject_pending');
+    });
 
     // company
     Route::get('/companies', [DashboardController::class, 'Companies'])->name('dashboard.companies');

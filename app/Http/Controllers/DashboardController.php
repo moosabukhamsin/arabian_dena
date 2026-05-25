@@ -16,10 +16,16 @@ use App\Models\BackloadItem;
 use App\Models\ProductItemCertificate;
 use App\Models\CompanyPriceList;
 use App\Models\User;
+use App\Enums\ApprovalStatus;
 use App\Enums\UserRole;
+use App\Services\ApprovalNotificationService;
 use App\Services\ProductItemStatusService;
+use App\Support\ApprovableEntity;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Notifications\DatabaseNotification;
 use ZipArchive;
@@ -28,6 +34,29 @@ use ZipArchive;
 class DashboardController extends Controller
 {
     private const TIME_SLOTS = ['Morning', 'Afternoon', 'Evening'];
+
+    private function stripApprovalFieldsFromData(array $data): array
+    {
+        unset($data['approval_status'], $data['authorized_by_id'], $data['modified_by_id']);
+
+        return $data;
+    }
+
+    private function markDataAsPendingApproval(array $data): array
+    {
+        $data = $this->stripApprovalFieldsFromData($data);
+
+        return array_merge($data, [
+            'approval_status' => ApprovalStatus::Pending->value,
+            'authorized_by_id' => null,
+            'modified_by_id' => Auth::id(),
+        ]);
+    }
+
+    private function notifyApprovalReviewers(Model $entity, string $action): void
+    {
+        app(ApprovalNotificationService::class)->notifyReviewers($entity, $action);
+    }
 
     private function buildTimeSheetRowsForOrderItems($orderItems): array
     {
@@ -54,7 +83,7 @@ class DashboardController extends Controller
         $i = 1;
         foreach ($orderItems as $orderItem) {
             $orderItemId = (int) $orderItem->id;
-            $order = $orderItem->Order;
+            $order = $orderItem->order;
             $companyName = $order?->Company?->name ?? '';
 
             $productName = $orderItem->productItem?->product?->name ?? '';
@@ -216,19 +245,19 @@ class DashboardController extends Controller
         }
 
         // Get active rentals (orders with items not returned)
-        $activeRentals = \App\Models\OrderItem::whereHas('Order', function($query) {
+        $activeRentals = \App\Models\OrderItem::whereHas('order', function($query) {
             $query->where('is_active', true);
         })->whereNotIn('id', function($query) {
             $query->select('order_item_id')
                   ->from('backload_items')
                   ->whereNotNull('order_item_id');
-        })->with(['Order.Company', 'ProductItem.product'])
+        })->with(['order.Company', 'ProductItem.product'])
         ->limit(10)
         ->get();
 
         // Calculate pricing for active rentals
         foreach ($activeRentals as $rental) {
-            $pricingInfo = $this->calculateOrderItemPricing($rental, $rental->Order->Company);
+            $pricingInfo = $this->calculateOrderItemPricing($rental, $rental->order->Company);
             $rental->unit_price = $pricingInfo['unit_price'];
             $rental->duration_days = $pricingInfo['duration_days'];
             $rental->total_price = $pricingInfo['total_price'];
@@ -245,12 +274,12 @@ class DashboardController extends Controller
     }
     public function Categories()
     {
-        $categories = Category::where('is_active', true)->get();
+        $categories = Category::where('is_active', true)->visible()->get();
         return view('dashboard.categories', ['categories' => $categories]);
     }
     public function StoreCategory(Request $request)
     {
-        $data = $request->except(['image']);
+        $data = $this->markDataAsPendingApproval($request->except(['image']));
         $data['is_active'] = true;
         if ($request->hasFile('image')) {
             $file = $request->file('image');
@@ -262,17 +291,21 @@ class DashboardController extends Controller
             $category->category_code = (string) $category->id;
             $category->save();
         }
+        $this->notifyApprovalReviewers($category, 'created');
+
         return redirect()->back();
     }
     public function UpdateCategory(Request $request, Category $Category)
     {
-        $data = $request->except(['image']);
+        $data = $this->markDataAsPendingApproval($request->except(['image']));
         if ($request->hasFile('image')) {
             $file = $request->file('image');
             $filename = Storage::disk('public')->put('/', $file);
             $data['image'] = $filename;
         }
         $Category->update($data);
+        $this->notifyApprovalReviewers($Category, 'updated');
+
         return redirect()->back();
     }
     public function DeleteCategory(Category $Category)
@@ -311,32 +344,53 @@ class DashboardController extends Controller
         return redirect()->route('dashboard.users')->with('success', 'User role updated successfully.');
     }
 
+    public function DeleteUser(Request $request, User $User)
+    {
+        $deletingSelf = $User->id === Auth::id();
+
+        $User->delete();
+
+        if ($deletingSelf) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login');
+        }
+
+        return redirect()->route('dashboard.users')->with('success', 'User deleted successfully.');
+    }
+
     public function Companies()
     {
-        $companies = Company::where('is_active', 1)->get();
+        $companies = Company::where('is_active', 1)->visible()->get();
         return view('dashboard.companies', ['companies' => $companies]);
     }
     public function StoreCompany(Request $request)
     {
-        $data = $request->except(['image']);
+        $data = $this->markDataAsPendingApproval($request->except(['image']));
         $data['is_active'] = true;
         if ($request->hasFile('image')) {
             $file = $request->file('image');
             $filename = Storage::disk('public')->put('/', $file);
             $data['image'] = $filename;
         }
-        Company::create($data);
+        $company = Company::create($data);
+        $this->notifyApprovalReviewers($company, 'created');
+
         return redirect()->back();
     }
     public function UpdateCompany(Request $request, Company $Company)
     {
-        $data = $request->except(['image']);
+        $data = $this->markDataAsPendingApproval($request->except(['image']));
         if ($request->hasFile('image')) {
             $file = $request->file('image');
             $filename = Storage::disk('public')->put('/', $file);
             $data['image'] = $filename;
         }
         $Company->update($data);
+        $this->notifyApprovalReviewers($Company, 'updated');
+
         return redirect()->back();
     }
     public function DeleteCompany(Company $Company)
@@ -346,8 +400,11 @@ class DashboardController extends Controller
     }
     public function Company(Company $Company)
     {
-        // Load orders with their order items and related data
-        $Company->load(['Orders.OrderItems.productItem.product']);
+        // Load orders with their order items and related data (hide pending approval)
+        $Company->load([
+            'Orders' => fn ($query) => $query->where('is_active', 1)->visible()->with('OrderItems.productItem.product'),
+            'Backloads' => fn ($query) => $query->where('is_active', 1)->visible()->with('BackloadItems'),
+        ]);
 
         // Calculate total amount for each order
         foreach ($Company->Orders as $order) {
@@ -361,7 +418,7 @@ class DashboardController extends Controller
             $order->total_amount = $totalAmount;
         }
 
-        $products = Product::where('is_active', 1)->get();
+        $products = Product::where('is_active', 1)->visible()->get();
         $suggestedBackloadNumber = $this->generateBackloadNumberForCompany($Company);
 
         return view('dashboard.company', [
@@ -385,22 +442,25 @@ class DashboardController extends Controller
     }
     public function Products()
     {
-        $categories = Category::where('is_active', true)->get();
-        $products = Product::where('is_active', true)->get();
+        $categories = Category::where('is_active', true)->visible()->get();
+        $products = Product::where('is_active', true)->visible()->get();
         return view('dashboard.products', compact('categories', 'products'));
     }
 
     public function ProductItems()
     {
-        $productItems = ProductItem::with(['product', 'orderItems.order', 'backloadItems'])->where('is_active', true)->get();
-        $products = Product::where('is_active', true)->get();
+        $productItems = ProductItem::with(['product', 'orderItems.order', 'backloadItems'])
+            ->where('is_active', true)
+            ->visible()
+            ->get();
+        $products = Product::where('is_active', true)->visible()->get();
 
         return view('dashboard.product_items', compact('productItems', 'products'));
     }
 
     public function StoreProduct(Request $request)
     {
-        $data = $request->except(['image']);
+        $data = $this->markDataAsPendingApproval($request->except(['image']));
         $data['is_active'] = true;
         $data['daily_price'] = $request->filled('daily_price') ? $request->input('daily_price') : 20;
         $data['weekly_price'] = $request->filled('weekly_price') ? $request->input('weekly_price') : 15;
@@ -415,24 +475,30 @@ class DashboardController extends Controller
             $product->product_code = (string) $product->id;
             $product->save();
         }
+        $this->notifyApprovalReviewers($product, 'created');
+
         return redirect()->back();
     }
     public function Product(Product $Product)
     {
-        // Load product items with their relationships
-        $Product->load(['ProductItems.product']);
+        // Load product items with their relationships (hide pending approval)
+        $Product->load([
+            'ProductItems' => fn ($query) => $query->where('is_active', true)->visible()->with('product'),
+        ]);
 
         return view('dashboard.product', ['Product' => $Product]);
     }
     public function UpdateProduct(Request $request, Product $Product)
     {
-        $data = $request->except(['image']);
+        $data = $this->markDataAsPendingApproval($request->except(['image']));
         if ($request->hasFile('image')) {
             $file = $request->file('image');
             $filename = Storage::disk('public')->put('/', $file);
             $data['image'] = $filename;
         }
         $Product->update($data);
+        $this->notifyApprovalReviewers($Product, 'updated');
+
         return redirect()->back();
     }
     public function DeleteProduct(Product $Product)
@@ -590,7 +656,7 @@ class DashboardController extends Controller
             'product_item_code' => ['nullable', 'string', 'max:255'],
         ])->validateWithBag('createProductItem');
 
-        $data = $request->except(['certificate']);
+        $data = $this->markDataAsPendingApproval($request->except(['certificate']));
         $data['is_active'] = true;
         $data['product_id'] = $Product->id;
         $data['status'] = 'In Stock'; // Set default status to In Stock
@@ -610,6 +676,8 @@ class DashboardController extends Controller
             $productItem->product_item_code = (string) $productItem->id;
             $productItem->save();
         }
+        $this->notifyApprovalReviewers($productItem, 'created');
+
         return redirect()->back();
     }
     public function DeleteProductItem(ProductItem $ProductItem)
@@ -633,7 +701,7 @@ class DashboardController extends Controller
             'status' => ['required', 'string', Rule::in(['In Stock', 'Under Rental', 'Backloaded', 'Lost', 'Scrap'])],
         ])->validateWithBag('updateProductItem');
 
-        $data = $request->except(['editing_product_item_id', 'certificate']);
+        $data = $this->markDataAsPendingApproval($request->except(['editing_product_item_id', 'certificate']));
         $ProductItem->update($data);
 
         if ($request->hasFile('certificate')) {
@@ -644,14 +712,17 @@ class DashboardController extends Controller
                 'certificate' => $filename,
             ]);
             // keep legacy column in sync with "current" certificate
-            $ProductItem->update(['certificate' => $filename]);
+            $ProductItem->update($this->markDataAsPendingApproval(['certificate' => $filename]));
         }
+        $ProductItem->refresh();
+        $this->notifyApprovalReviewers($ProductItem, 'updated');
+
         return redirect()->back();
     }
     // orders
     public function StoreOrderDirect(Request $request)
     {
-        $data = $request->except(['delivery_note']);
+        $data = $this->markDataAsPendingApproval($request->except(['delivery_note']));
         $data['is_active'] = true;
         if (isset($data['product_ids']) && is_array($data['product_ids'])) {
             $data['product_ids'] = array_values(array_filter($data['product_ids'], fn ($v) => $v !== null && $v !== ''));
@@ -678,7 +749,9 @@ class DashboardController extends Controller
             for ($i = 0; $i < 5; $i++) {
                 $data['order_number'] = $this->generateOrderNumberForCompany($company);
                 try {
-                    Order::create($data);
+                    $order = Order::create($data);
+                    $this->notifyApprovalReviewers($order, 'created');
+
                     return redirect()->route('dashboard.orders');
                 } catch (\Illuminate\Database\QueryException $e) {
                     // retry on unique collision
@@ -686,12 +759,14 @@ class DashboardController extends Controller
             }
         }
 
-        Order::create($data);
+        $order = Order::create($data);
+        $this->notifyApprovalReviewers($order, 'created');
+
         return redirect()->route('dashboard.orders');
     }
     public function StoreOrder(Request $request,Company $Company)
     {
-        $data = $request->except(['delivery_note']);
+        $data = $this->markDataAsPendingApproval($request->except(['delivery_note']));
         $data['is_active'] = true;
         $data['company_id'] = $Company->id;
         if (isset($data['product_ids']) && is_array($data['product_ids'])) {
@@ -713,14 +788,18 @@ class DashboardController extends Controller
         for ($i = 0; $i < 5; $i++) {
             $data['order_number'] = $this->generateOrderNumberForCompany($Company);
             try {
-                Order::create($data);
+                $order = Order::create($data);
+                $this->notifyApprovalReviewers($order, 'created');
+
                 return redirect()->back();
             } catch (\Illuminate\Database\QueryException $e) {
                 // retry on unique collision
             }
         }
 
-        Order::create($data);
+        $order = Order::create($data);
+        $this->notifyApprovalReviewers($order, 'created');
+
         return redirect()->back();
     }
     public function DeleteOrder(Order $Order)
@@ -751,7 +830,7 @@ class DashboardController extends Controller
             'time' => ['nullable', 'string', Rule::in(self::TIME_SLOTS)],
         ]);
 
-        $data = $request->except(['po_reference', 'attachment']);
+        $data = $this->markDataAsPendingApproval($request->except(['po_reference', 'attachment']));
 
         if (isset($data['product_ids']) && is_array($data['product_ids'])) {
             $data['product_ids'] = array_values(array_filter($data['product_ids'], fn ($v) => $v !== null && $v !== ''));
@@ -775,6 +854,8 @@ class DashboardController extends Controller
         }
         $data['time'] = $request->input('time') ?: null;
         $Order->update($data);
+        $this->notifyApprovalReviewers($Order, 'updated');
+
         return redirect()->back();
     }
     public function Order(Order $Order)
@@ -840,7 +921,7 @@ class DashboardController extends Controller
 
     public function DeliveryNote(Order $Order)
     {
-        $Order->load(['Company', 'OrderItems.productItem.product']);
+        $Order->load(['Company', 'OrderItems.productItem.product', 'authorizedBy']);
 
         $companyName = $Order->Company->name ?? '';
         $clientCode = $this->companyNameInitials($companyName);
@@ -954,15 +1035,15 @@ class DashboardController extends Controller
 
     public function BackloadNote(Backload $Backload)
     {
-        $Backload->load(['Company', 'BackloadItems.OrderItem.ProductItem.Product', 'BackloadItems.OrderItem.Order']);
+        $Backload->load(['Company', 'BackloadItems.OrderItem.ProductItem.Product', 'BackloadItems.OrderItem.Order', 'authorizedBy']);
 
         $companyName = $Backload->Company->name ?? '';
         $clientCode = $this->companyNameInitials($companyName);
 
         $order = null;
         $firstBackloadItem = $Backload->BackloadItems->first();
-        if ($firstBackloadItem?->OrderItem?->Order) {
-            $order = $firstBackloadItem->OrderItem->Order;
+        if ($firstBackloadItem?->OrderItem?->order) {
+            $order = $firstBackloadItem->OrderItem->order;
         }
 
         $byProduct = [];
@@ -1000,7 +1081,7 @@ class DashboardController extends Controller
 
         $siteCodes = [];
         foreach ($Backload->BackloadItems as $backloadItem) {
-            $site = trim((string) ($backloadItem->OrderItem?->Order?->site_code ?? ''));
+            $site = trim((string) ($backloadItem->OrderItem?->order?->site_code ?? ''));
             if ($site !== '') {
                 $siteCodes[$site] = true;
             }
@@ -1009,7 +1090,7 @@ class DashboardController extends Controller
 
         $poNumbers = [];
         foreach ($Backload->BackloadItems as $backloadItem) {
-            $poNumber = trim((string) ($backloadItem->OrderItem?->Order?->po_number ?? ''));
+            $poNumber = trim((string) ($backloadItem->OrderItem?->order?->po_number ?? ''));
             if ($poNumber !== '') {
                 $poNumbers[$poNumber] = true;
             }
@@ -1032,7 +1113,7 @@ class DashboardController extends Controller
     private function calculateOrderItemPricing($orderItem, $company)
     {
         // Calculate duration
-        $startDate = $orderItem->Order->delivery_date ? \Carbon\Carbon::parse($orderItem->Order->delivery_date) : $orderItem->Order->created_at;
+        $startDate = $orderItem->order->delivery_date ? \Carbon\Carbon::parse($orderItem->order->delivery_date) : $orderItem->order->created_at;
         $startDate = $startDate->startOfDay(); // Normalize to start of day for calendar day calculation
 
         // Check if this order item has been returned via backload
@@ -1102,18 +1183,20 @@ class DashboardController extends Controller
     }
     public function Orders()
     {
-        $orders = Order::where('is_active', 1)->with(['Company', 'OrderItems.productItem.product'])->get();
+        $orders = Order::where('is_active', 1)->visible()->with(['Company', 'OrderItems.productItem.product'])->get();
 
-        $companies = Company::where('is_active', 1)->get();
+        $companies = Company::where('is_active', 1)->visible()->get();
         $employees = CompanyEmployee::where('is_active', 1)->get();
         return view('dashboard.orders', ['orders' => $orders, 'companies' => $companies, 'employees' => $employees]);
     }
 
     public function OrderItems()
     {
-        $orderItems = OrderItem::with(['order.company', 'productItem.product'])->get();
-        $orders = Order::where('is_active', 1)->get();
-        $productItems = ProductItem::where('is_active', 1)->get();
+        $orderItems = OrderItem::with(['order.company', 'productItem.product'])
+            ->whereHas('order', fn ($query) => $query->visible())
+            ->get();
+        $orders = Order::where('is_active', 1)->visible()->get();
+        $productItems = ProductItem::where('is_active', 1)->visible()->get();
 
         // Calculate pricing for each order item using the same method as Order page
         foreach ($orderItems as $orderItem) {
@@ -1130,7 +1213,9 @@ class DashboardController extends Controller
 
     public function TimeSheetAllPdf()
     {
-        $orderItems = OrderItem::with(['order.company', 'productItem.product'])->get();
+        $orderItems = OrderItem::with(['order.company', 'productItem.product'])
+            ->whereHas('order', fn ($query) => $query->visible())
+            ->get();
 
         foreach ($orderItems as $orderItem) {
             $company = $orderItem->order?->company;
@@ -1369,7 +1454,7 @@ class DashboardController extends Controller
             'time' => ['nullable', 'string', Rule::in(self::TIME_SLOTS)],
         ]);
 
-        $data = $request->all();
+        $data = $this->markDataAsPendingApproval($request->all());
         $data['is_active'] = true;
         $data['company_id'] = $Company->id;
         $data['time'] = $request->input('time') ?: null;
@@ -1381,7 +1466,9 @@ class DashboardController extends Controller
             for ($i = 0; $i < 5; $i++) {
                 $data['backload_number'] = $this->generateBackloadNumberForCompany($Company);
                 try {
-                    Backload::create($data);
+                    $backload = Backload::create($data);
+                    $this->notifyApprovalReviewers($backload, 'created');
+
                     return redirect()->back();
                 } catch (\Illuminate\Database\QueryException $e) {
                     // retry on unique collision
@@ -1389,13 +1476,15 @@ class DashboardController extends Controller
             }
 
             $data['backload_number'] = $this->generateBackloadNumberForCompany($Company);
-            Backload::create($data);
+            $backload = Backload::create($data);
+            $this->notifyApprovalReviewers($backload, 'created');
 
             return redirect()->back();
         }
 
         $data['backload_number'] = $backloadNumber;
-        Backload::create($data);
+        $backload = Backload::create($data);
+        $this->notifyApprovalReviewers($backload, 'created');
 
         return redirect()->back();
     }
@@ -1411,11 +1500,13 @@ class DashboardController extends Controller
             'time' => ['nullable', 'string', Rule::in(self::TIME_SLOTS)],
         ]);
 
-        $data = $request->all();
+        $data = $this->markDataAsPendingApproval($request->all());
         $data['backload_number'] = trim((string) ($data['backload_number'] ?? '')) ?: null;
         $data['time'] = $request->input('time') ?: null;
 
         $Backload->update($data);
+        $this->notifyApprovalReviewers($Backload, 'updated');
+
         return redirect()->back();
     }
     public function DeleteBackload(Backload $Backload)
@@ -1441,14 +1532,14 @@ class DashboardController extends Controller
         $OrderItems = OrderItem::query()
             ->whereNotIn('id', $backloadOrderItemIds)
             ->whereIn('id', $Backload->Company->OrderItems()->pluck('order_items.id'))
-            ->with(['ProductItem.Product', 'Order'])
+            ->with(['ProductItem.Product', 'order'])
             ->get();
 
         return view('dashboard.backload', ['Backload' => $Backload, 'OrderItems' => $OrderItems]);
     }
     public function Backloads()
     {
-        $backloads = Backload::where('is_active', 1)->get();
+        $backloads = Backload::where('is_active', 1)->visible()->get();
         return view('dashboard.backloads', ['backloads' => $backloads]);
     }
     public function StoreBackloadItem(Request $request, Backload $Backload)
@@ -1592,9 +1683,76 @@ class DashboardController extends Controller
         return redirect()->back();
     }
 
+    public function PendingApprovals(ApprovalNotificationService $approvalService)
+    {
+        Gate::authorize('approve-pending');
 
+        return view('dashboard.pending_approvals', [
+            'pendingRows' => $approvalService->pendingApprovalRows(),
+        ]);
+    }
 
+    public function ReviewPending(string $entityType, int $id, ApprovalNotificationService $approvalService)
+    {
+        Gate::authorize('approve-pending');
 
+        $model = $approvalService->resolveModelForReview($entityType, $id);
 
+        if (! $approvalService->canCurrentUserReview($model)) {
+            abort(403, 'You cannot review this request.');
+        }
+
+        return view('dashboard.partials.pending_approval_review_body', [
+            'entityType' => $entityType,
+            'entityId' => $id,
+            'typeLabel' => ApprovableEntity::typeLabel($entityType),
+            'displayName' => ApprovableEntity::displayName($model),
+            'fields' => $approvalService->buildReviewFields($model, $entityType),
+        ]);
+    }
+
+    public function ApprovePending(string $entityType, int $id)
+    {
+        Gate::authorize('approve-pending');
+
+        $model = app(ApprovalNotificationService::class)->resolveModel($entityType, $id);
+
+        if (! $model->isPendingApproval()) {
+            return redirect()->route('dashboard.pending_approvals')
+                ->with('error', 'This item is no longer pending approval.');
+        }
+
+        $model->update([
+            'approval_status' => ApprovalStatus::Approved->value,
+            'authorized_by_id' => Auth::id(),
+        ]);
+        $model->refresh();
+        app(ApprovalNotificationService::class)->notifyModifierOfDecision($model, 'approved');
+
+        return redirect()->route('dashboard.pending_approvals')
+            ->with('success', ApprovableEntity::typeLabel($entityType) . ' approved successfully.');
+    }
+
+    public function RejectPending(string $entityType, int $id)
+    {
+        Gate::authorize('approve-pending');
+
+        $model = app(ApprovalNotificationService::class)->resolveModel($entityType, $id);
+
+        if (! $model->isPendingApproval()) {
+            return redirect()->route('dashboard.pending_approvals')
+                ->with('error', 'This item is no longer pending approval.');
+        }
+
+        $model->update([
+            'approval_status' => ApprovalStatus::Rejected->value,
+            'authorized_by_id' => Auth::id(),
+        ]);
+        $model->refresh();
+        app(ApprovalNotificationService::class)->notifyModifierOfDecision($model, 'rejected');
+
+        return redirect()->route('dashboard.pending_approvals')
+            ->with('success', ApprovableEntity::typeLabel($entityType) . ' rejected.');
+    }
 }
 

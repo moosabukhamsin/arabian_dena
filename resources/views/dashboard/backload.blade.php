@@ -50,7 +50,7 @@
                                                     <td>{{ $OrderItem->id }}@if($product?->image_url) - <img src="{{ $product->image_url }}" alt="Product Image" width="25">@endif</td>
                                                     <td>{{ $product?->name ?? '—' }}</td>
                                                     <td>{{ $productItem?->series_number ?? '—' }}</td>
-                                                    <td>{{ $OrderItem->Order?->delivery_date ?? '—' }}</td>
+                                                    <td>{{ $OrderItem->order?->delivery_date ?? '—' }}</td>
                                                     <td>Active</td>
                                                     <td >
 
@@ -108,7 +108,7 @@
                                                     <td>{{ $orderItem?->id ?? '—' }}@if($product?->image_url) - <img src="{{ $product->image_url }}" alt="Product Image" width="25">@endif</td>
                                                     <td>{{ $product?->name ?? '—' }}</td>
                                                     <td>{{ $productItem?->series_number ?? '—' }}</td>
-                                                    <td>{{ $orderItem?->Order?->delivery_date ?? '—' }}</td>
+                                                    <td>{{ $orderItem?->order?->delivery_date ?? '—' }}</td>
                                                     <td>{{ $BackloadItem->Backload?->date ?? $Backload->date ?? '—' }}</td>
                                                     <td>
 

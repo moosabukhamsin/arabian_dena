@@ -99,9 +99,21 @@
                                                     <div class="small text-muted">
                                                         {{ $notification->created_at?->diffForHumans() }}
                                                     </div>
-                                                    <div class="d-flex align-items-center gap-1">
+                                                    <div class="d-flex align-items-center gap-1 flex-wrap justify-content-end">
+                                                        @if(!empty($notificationData['entity_type']) && !empty($notificationData['entity_id']) && empty($notificationData['decision']))
+                                                            @can('approve-pending')
+                                                            <form method="POST" action="{{ route('dashboard.approve_pending', ['entityType' => $notificationData['entity_type'], 'id' => $notificationData['entity_id']]) }}" class="d-inline">
+                                                                @csrf
+                                                                <button type="submit" class="btn btn-sm btn-success py-0 px-2">Approve</button>
+                                                            </form>
+                                                            <form method="POST" action="{{ route('dashboard.reject_pending', ['entityType' => $notificationData['entity_type'], 'id' => $notificationData['entity_id']]) }}" class="d-inline" onsubmit="return confirm('Reject this item?');">
+                                                                @csrf
+                                                                <button type="submit" class="btn btn-sm btn-danger py-0 px-2">Reject</button>
+                                                            </form>
+                                                            @endcan
+                                                        @endif
                                                         @if(!empty($notificationData['url']))
-                                                            <a href="{{ $notificationData['url'] }}" class="btn btn-sm btn-outline-secondary py-0 px-2">Open</a>
+                                                            <a href="{{ $notificationData['url'] }}" class="btn btn-sm btn-outline-secondary py-0 px-2">Review</a>
                                                         @endif
                                                         @if(is_null($notification->read_at))
                                                             <form method="POST" action="{{ route('dashboard.notifications.read', $notification->id) }}">
@@ -208,6 +220,13 @@
                                         class="side-menu__icon fe fe-users"></i><span
                                         class="side-menu__label">Companies</span></a>
                             </li>
+                            @can('approve-pending')
+                            <li class="slide">
+                                <a class="side-menu__item has-link" data-bs-toggle="slide" href="{{ route('dashboard.pending_approvals') }}"><i
+                                        class="side-menu__icon fe fe-check-circle"></i><span
+                                        class="side-menu__label">Pending Approvals</span></a>
+                            </li>
+                            @endcan
                             @can('access-users')
                             <li class="slide">
                                 <a class="side-menu__item has-link" data-bs-toggle="slide" href="{{ route('dashboard.users') }}"><i

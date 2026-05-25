@@ -6,7 +6,7 @@
     <style>
         @page { margin: 18px; }
         body {
-            font-family: Arial, sans-serif;
+            font-family: Calibri, Carlito, DejaVu Sans, sans-serif;
             font-size: 11px;
             color: #111;
         }
@@ -15,18 +15,17 @@
         }
         .header {
             padding: 10px 12px 6px 12px;
-            text-align: center;
             border-bottom: 2px solid #111;
         }
-        .header .company {
-            font-size: 14px;
-            font-weight: bold;
-            letter-spacing: 0.5px;
-        }
+        .top { width: 100%; border-collapse: collapse; }
+        .top td { vertical-align: top; }
+        .pdf-logo { max-height: 58px; max-width: 240px; height: auto; display: block; }
+        .right-meta { text-align: right; font-size: 9px; line-height: 1.35; }
         .header .title {
-            margin-top: 6px;
+            margin-top: 8px;
             font-size: 12px;
             font-weight: bold;
+            text-align: center;
         }
         .meta {
             width: 100%;
@@ -81,12 +80,26 @@
             background: #f4d45f;
             font-weight: bold;
         }
+        .pdf-iso-logos { text-align: center; margin-top: 12px; padding: 0 12px 12px; width: 100%; }
+        .pdf-iso-logos-img { max-width: 260px; width: 55%; height: auto; }
     </style>
 </head>
 <body>
     <div class="sheet">
         <div class="header">
-            <div class="company">ARABIAN DENA CONTRACTING EST.</div>
+            <table class="top">
+                <tr>
+                    <td style="width: 60%;">
+                        @include('dashboard.partials.pdf_logo')
+                    </td>
+                    <td class="right-meta" style="width: 40%;">
+                        <div>P. O Box No. 7969 - 5141, Dammam 32433, Kingdom of Saudi Arabia</div>
+                        <div>Off Tel: 013 5804777,</div>
+                        <div>Email : info@arabiandena.com</div>
+                        <div>Website : www.arabiandena.com</div>
+                    </td>
+                </tr>
+            </table>
             <div class="title">RENTAL MATERIALS REQUEST LIST</div>
         </div>
 
@@ -134,7 +147,8 @@
                 <td></td>
             </tr>
         </table>
+
+        @include('dashboard.partials.pdf_iso_logos')
     </div>
 </body>
 </html>
-

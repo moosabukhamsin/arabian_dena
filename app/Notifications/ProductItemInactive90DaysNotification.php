@@ -38,7 +38,7 @@ class ProductItemInactive90DaysNotification extends Notification
     {
         return [
             'title' => 'Equipment inactive for 90+ days',
-            'message' => "Product item #{$this->productItem->id} ({$this->productItem->series_number}) has been inactive for 90 days or more.",
+            'message' => "Product item {$this->productItem->series_number} has been inactive for 90 days or more.",
             'product_item_id' => $this->productItem->id,
             'series_number' => $this->productItem->series_number,
             'product_name' => optional($this->productItem->product)->name,

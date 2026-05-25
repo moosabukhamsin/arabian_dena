@@ -27,5 +27,6 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('create-company', fn (User $user) => $user->canCreateCompany());
         Gate::define('access-company-pricing', fn (User $user) => $user->canAccessCompanyPricing());
         Gate::define('delete-records', fn (User $user) => $user->canDeleteRecords());
+        Gate::define('approve-pending', fn (User $user) => $user->canApprovePending());
     }
 }

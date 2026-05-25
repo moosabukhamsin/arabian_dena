@@ -47,7 +47,7 @@
                                                     <td>{{ $orderItem->id }} - @if($orderItem->ProductItem->Product->image_url)<img src="{{ $orderItem->ProductItem->Product->image_url }}" alt="Product Image" width="25">@endif</td>
                                                     <td>{{ $orderItem->ProductItem->product->name }}</td>
                                                     <td>{{ $orderItem->ProductItem->series_number }}</td>
-                                                    <td>{{ $orderItem->Order->delivery_date }}</td>
+                                                    <td>{{ $orderItem->order->delivery_date }}</td>
                                                     <td>
                                                         @php
                                                             $backloadItem = \App\Models\BackloadItem::where('order_item_id', $orderItem->id)->first();

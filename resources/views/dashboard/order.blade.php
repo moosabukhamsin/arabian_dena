@@ -164,7 +164,7 @@
                                                             <span class="text-muted">—</span>
                                                         @endif
                                                     </td>
-                                                    <td>{{ $OrderItem->Order->delivery_date }}</td>
+                                                    <td>{{ $OrderItem->order->delivery_date }}</td>
                                                     <td>
                                                         @php
                                                             $backloadItem = \App\Models\BackloadItem::where('order_item_id', $OrderItem->id)->first();

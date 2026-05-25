@@ -122,6 +122,45 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h3 class="card-title">Pending Requests</h3>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted small mb-3">
+                                    Your create and edit actions awaiting approval across categories, products, product items, orders, backloads, and companies.
+                                </p>
+                                <div class="table-responsive">
+                                    <table class="table table-bordered text-nowrap border-bottom mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Type</th>
+                                                <th>ID</th>
+                                                <th>Name</th>
+                                                <th>Status</th>
+                                                <th>Submitted</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @forelse ($pendingRequestRows as $row)
+                                                <tr>
+                                                    <td>{{ $row['type_label'] }}</td>
+                                                    <td>{{ $row['entity_id'] }}</td>
+                                                    <td>{{ $row['label'] }}</td>
+                                                    <td><span class="badge bg-warning text-dark">Pending</span></td>
+                                                    <td>{{ $row['updated_at']?->format('d M Y H:i') ?? '—' }}</td>
+                                                </tr>
+                                            @empty
+                                                <tr>
+                                                    <td colspan="5" class="text-center text-muted py-4">You have no pending requests.</td>
+                                                </tr>
+                                            @endforelse
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="col-lg-4">
@@ -145,6 +184,20 @@
                                         <span>{{ $user->created_at?->format('d M Y') ?? '—' }}</span>
                                     </li>
                                 </ul>
+                            </div>
+                        </div>
+
+                        <div class="card border-danger">
+                            <div class="card-header border-danger">
+                                <h3 class="card-title text-danger">Delete Account</h3>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted small mb-3">Permanently delete your account. You will be signed out and cannot undo this action.</p>
+                                <a href="{{ route('profile.delete') }}"
+                                   class="btn btn-sm btn-danger"
+                                   onclick="return confirm('Delete your account? You will be signed out permanently.');">
+                                    <span class="fe fe-trash-2"></span> Delete Account
+                                </a>
                             </div>
                         </div>
                     </div>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\ApprovalNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -85,10 +86,11 @@ class AuthController extends Controller
     /**
      * Show the authenticated user's profile page
      */
-    public function showProfile()
+    public function showProfile(ApprovalNotificationService $approvalService)
     {
         return view('dashboard.profile', [
             'user' => Auth::user(),
+            'pendingRequestRows' => $approvalService->currentUserPendingRequestRows(),
         ]);
     }
 
@@ -123,6 +125,22 @@ class AuthController extends Controller
         }
 
         return redirect()->route('profile')->with('success', 'Profile updated successfully.');
+    }
+
+    /**
+     * Delete the authenticated user's account
+     */
+    public function deleteProfile(Request $request)
+    {
+        $user = Auth::user();
+
+        Auth::logout();
+        $user->delete();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('login');
     }
 
     /**

@@ -36,7 +36,7 @@ class ProductItemCertificationExpiredNotification extends Notification
     {
         return [
             'title' => 'Product item certification expired',
-            'message' => "Certification is expired for product item #{$this->productItem->id} ({$this->productItem->series_number}).",
+            'message' => "Certification is expired for product item {$this->productItem->series_number}.",
             'product_item_id' => $this->productItem->id,
             'series_number' => $this->productItem->series_number,
             'product_name' => optional($this->productItem->product)->name,
