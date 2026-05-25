@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Notifications\ApprovalDecisionNotification;
 use App\Notifications\ApprovalPendingNotification;
 use App\Support\ApprovableEntity;
+use App\Support\DateTimeFormatter;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -223,7 +224,7 @@ class ApprovalNotificationService
             $this->field('Name', $category->name),
             $this->imageField('Image', $category->image_url ?? null),
             $this->field('Modified By', $category->modifiedBy?->name),
-            $this->field('Last Updated', $category->updated_at?->format('d M Y H:i')),
+            $this->field('Last Updated', DateTimeFormatter::format($category->updated_at)),
         ];
     }
 
@@ -243,7 +244,7 @@ class ApprovalNotificationService
             $this->field('Monthly Price', $product->monthly_price),
             $this->imageField('Image', $product->image_url ?? null),
             $this->field('Modified By', $product->modifiedBy?->name),
-            $this->field('Last Updated', $product->updated_at?->format('d M Y H:i')),
+            $this->field('Last Updated', DateTimeFormatter::format($product->updated_at)),
         ];
     }
 
@@ -265,7 +266,7 @@ class ApprovalNotificationService
             $this->field('Inspection Date', $productItem->inspection_date),
             $this->linkField('Certificate', $certificateUrl),
             $this->field('Modified By', $productItem->modifiedBy?->name),
-            $this->field('Last Updated', $productItem->updated_at?->format('d M Y H:i')),
+            $this->field('Last Updated', DateTimeFormatter::format($productItem->updated_at)),
         ];
     }
 
@@ -294,7 +295,7 @@ class ApprovalNotificationService
             $this->field('Order Status', $order->status),
             $this->field('Products Requested', $productLines),
             $this->field('Modified By', $order->modifiedBy?->name),
-            $this->field('Last Updated', $order->updated_at?->format('d M Y H:i')),
+            $this->field('Last Updated', DateTimeFormatter::format($order->updated_at)),
         ];
     }
 
@@ -317,7 +318,7 @@ class ApprovalNotificationService
             $this->field('Truck Number', $backload->truck_number),
             $this->fileField('Attachment', $backload->attachment),
             $this->field('Modified By', $backload->modifiedBy?->name),
-            $this->field('Last Updated', $backload->updated_at?->format('d M Y H:i')),
+            $this->field('Last Updated', DateTimeFormatter::format($backload->updated_at)),
         ];
     }
 
@@ -339,7 +340,7 @@ class ApprovalNotificationService
             $this->field('Pricing Type', $pricingLabel),
             $this->imageField('Logo', $company->image_url ?? null),
             $this->field('Modified By', $company->modifiedBy?->name),
-            $this->field('Last Updated', $company->updated_at?->format('d M Y H:i')),
+            $this->field('Last Updated', DateTimeFormatter::format($company->updated_at)),
         ];
     }
 
@@ -374,7 +375,7 @@ class ApprovalNotificationService
         }
 
         if ($value instanceof \DateTimeInterface) {
-            return ['label' => $label, 'value' => $value->format('d M Y H:i')];
+            return ['label' => $label, 'value' => DateTimeFormatter::format($value)];
         }
 
         return ['label' => $label, 'value' => (string) $value, 'type' => str_contains((string) $value, "\n") ? 'multiline' : 'text'];

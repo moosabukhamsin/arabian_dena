@@ -149,7 +149,7 @@
                                                     <td>{{ $row['entity_id'] }}</td>
                                                     <td>{{ $row['label'] }}</td>
                                                     <td><span class="badge bg-warning text-dark">Pending</span></td>
-                                                    <td>{{ $row['updated_at']?->format('d M Y H:i') ?? '—' }}</td>
+                                                    <td>{{ \App\Support\DateTimeFormatter::format($row['updated_at'] ?? null) }}</td>
                                                 </tr>
                                             @empty
                                                 <tr>

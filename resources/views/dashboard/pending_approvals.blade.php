@@ -38,7 +38,7 @@
                                                     <td>{{ $row['entity_id'] }}</td>
                                                     <td>{{ $row['label'] }}</td>
                                                     <td>{{ $row['modified_by'] }}</td>
-                                                    <td>{{ $row['updated_at']?->format('d M Y H:i') ?? '—' }}</td>
+                                                    <td>{{ \App\Support\DateTimeFormatter::format($row['updated_at'] ?? null) }}</td>
                                                     <td class="text-nowrap">
                                                         <button
                                                             type="button"
